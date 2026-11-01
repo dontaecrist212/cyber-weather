@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cyber Weather</title>
 <meta name="description" content="A daily threat forecast built from CISA's catalog of actively exploited vulnerabilities.">
-<meta name="theme-color" content="#0b1a1f">
+<meta name="theme-color" content="#07090d">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -15,173 +15,265 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* Layout: a forecast desk. Summary readout + radar on top, then the 14-day record, your local forecast, active alerts, storm fronts. */
+/* Layout: a night-ops console. The sky above the page takes the color of today's threat level;
+   everything else is quiet hairline surfaces so the level reads first. */
 :root{
-  --bg:#e9eef0; --panel:#f7f9fa; --ink:#13222b; --muted:#5b6d77; --line:#cfd9de; --accent:#0d7584;
-  --clear:#2a78ad; --cloudy:#6f7f89; --watch:#b97800; --warn:#bf3326;
-  --radar-bg:#0b1a1f; --radar-line:#1f4a52; --radar-sweep:#3fd0dc;
-  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
-  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --bg:#0c1317; --panel:#131d22; --ink:#e2eaed; --muted:#8c9ca4; --line:#25343b; --accent:#45b8c6;
-    --clear:#5aa6dc; --cloudy:#93a2aa; --watch:#e3a531; --warn:#ec6a5c;
-    --radar-bg:#071114; --radar-line:#1b3e45;
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0c1317; --panel:#131d22; --ink:#e2eaed; --muted:#8c9ca4; --line:#25343b; --accent:#45b8c6;
-  --clear:#5aa6dc; --cloudy:#93a2aa; --watch:#e3a531; --warn:#ec6a5c;
-  --radar-bg:#071114; --radar-line:#1b3e45;
+  --bg:#07090d;
+  --surface:rgba(255,255,255,.028);
+  --surface-hi:rgba(255,255,255,.055);
+  --line:rgba(255,255,255,.075);
+  --line-hi:rgba(255,255,255,.14);
+  --ink:#e9edf2;
+  --muted:#8c95a3;
+  --faint:#596170;
+  --ice:#a5d8ff;
+  --clear:#5aa9ff; --cloudy:#a3afbf; --watch:#f3b54a; --warn:#ff5a5f;
+  --lvl:var(--warn); --lvl-rgb:255,90,95;
+  --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:14px;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased}
-.wrap{max-width:1120px;margin:0 auto;padding:20px 20px 48px;display:grid;gap:20px}
-a{color:var(--accent)}
-a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-h1,h2,h3{text-wrap:balance;margin:0}
-.station{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px 20px;border-bottom:2px solid var(--ink);padding-bottom:10px}
-.station h1{font:900 34px/1 var(--display);letter-spacing:.02em;text-transform:uppercase}
-.station h1 span{color:var(--accent)}
-.station .meta{font:500 12px/1.4 var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:20px}
-.label{font:500 11px/1.2 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-h2{font:800 24px/1.05 var(--display);text-transform:uppercase;letter-spacing:.02em}
+html,body{margin:0;min-height:100%}
+body{
+  background:
+    radial-gradient(1100px 520px at 78% -140px, rgba(var(--lvl-rgb),.20), transparent 70%),
+    radial-gradient(900px 480px at -10% -200px, rgba(var(--lvl-rgb),.10), transparent 70%),
+    var(--bg);
+  background-repeat:no-repeat;
+  color:var(--ink);font:400 14px/1.55 var(--sans);
+  -webkit-font-smoothing:antialiased;letter-spacing:-.005em;
+}
+a{color:var(--ice);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--ice);outline-offset:2px;border-radius:6px}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:500}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 64px}
+.mono{font-family:var(--mono)}
+.eyebrow{font:500 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+
+/* Top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0 28px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:500;font-size:15px;letter-spacing:-.01em}
+.brand svg{width:22px;height:22px}
+.status{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font:400 12px var(--mono);color:var(--muted)}
+.live{display:inline-flex;align-items:center;gap:7px;color:var(--ink)}
+.live i{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:pulse 2.4s infinite}
+.live.off i{background:var(--faint);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.55)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.status .sep{width:1px;height:12px;background:var(--line-hi)}
+
+/* Panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;backdrop-filter:blur(8px)}
+.panel-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.panel h2{font-size:15px;letter-spacing:-.01em}
 .sub{color:var(--muted);font-size:13px;margin-top:4px;max-width:62ch}
 
 /* Hero */
-.hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(260px,.9fr);gap:20px;align-items:stretch}
-.cond{border-left:10px solid var(--lvl,var(--watch));display:grid;gap:14px;align-content:start}
-.cond .level{font:900 clamp(48px,8vw,92px)/.86 var(--display);text-transform:uppercase;color:var(--lvl);letter-spacing:.005em}
-.cond .alert-type{display:inline-flex;gap:8px;align-items:center;font:600 12px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--panel);background:var(--lvl);padding:6px 10px;border-radius:3px;justify-self:start}
-.cond .summary{font-size:17px;line-height:1.5;max-width:58ch}
-.cond .advice{font-size:14px;color:var(--muted);max-width:62ch;border-top:1px solid var(--line);padding-top:12px}
-.readouts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
-.readouts div{background:var(--panel);padding:10px 12px}
-.readouts b{display:block;font:800 30px/1 var(--display);font-variant-numeric:tabular-nums;margin-top:4px}
-.readouts small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
-.radar{background:var(--radar-bg);border-radius:6px;padding:14px;display:grid;gap:8px;color:#bfe3e8;border:1px solid var(--radar-line)}
-.radar .label{color:#7fb6be}
+.hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr);gap:20px;margin-bottom:20px}
+.cond{padding:30px 30px 26px;position:relative;overflow:hidden}
+.cond::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:linear-gradient(90deg,transparent,rgba(var(--lvl-rgb),.9),transparent)}
+.badge{display:inline-flex;align-items:center;gap:8px;font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--lvl);padding:7px 11px 7px 10px;border-radius:999px;background:rgba(var(--lvl-rgb),.10);border:1px solid rgba(var(--lvl-rgb),.28)}
+.badge i{width:6px;height:6px;border-radius:50%;background:var(--lvl);box-shadow:0 0 10px var(--lvl)}
+.level{font-weight:300;font-size:clamp(46px,7.2vw,88px);line-height:.95;letter-spacing:-.045em;margin:22px 0 18px;
+  background:linear-gradient(180deg,#fff 20%,rgba(var(--lvl-rgb),.85) 140%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.summary{font-size:17px;line-height:1.55;color:#c9d0d9;max-width:56ch;margin:0}
+.summary strong{color:var(--ink);font-weight:500}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-top:28px;border-top:1px solid var(--line)}
+.metric{padding:18px 16px 2px 0}
+.metric + .metric{padding-left:18px;border-left:1px solid var(--line)}
+.metric b{display:block;font:500 34px/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:10px 0 6px}
+.metric small{color:var(--muted);font-size:12px;line-height:1.35;display:block}
+.advice{display:flex;gap:10px;align-items:flex-start;margin-top:22px;padding:14px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--line);color:#c9d0d9;font-size:13.5px}
+.advice svg{flex:none;margin-top:2px;color:var(--lvl)}
+
+.radar{padding:20px;display:grid;gap:14px;align-content:start}
 .radar canvas{width:100%;aspect-ratio:1;display:block}
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font:400 11px/1.3 var(--mono);color:#9cc7cd}
-.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font:400 11.5px var(--mono);color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:7px;height:7px;border-radius:50%}
 
-/* Record chart */
-.chart-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-#bars{width:100%;height:180px;display:block}
-#bars text{fill:var(--muted);font:400 11px var(--mono)}
+/* Record */
+.record{margin-bottom:20px}
+.stat{font:400 12px var(--mono);color:var(--muted)}
+#bars{width:100%;height:190px;display:block}
+#bars text{fill:var(--faint);font:400 11px var(--mono)}
 
-/* Two columns */
-.cols{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:20px;align-items:start}
+/* Main columns */
+.cols{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:20px;align-items:start}
 .side{display:grid;gap:20px}
 
-/* Stack */
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
-.chip{display:inline-flex;align-items:center;gap:6px;font:500 13px/1 var(--body);border:1px solid var(--accent);color:var(--accent);background:transparent;padding:6px 6px 6px 10px;border-radius:999px}
-.chip button{border:0;background:transparent;color:inherit;cursor:pointer;font:600 14px/1 var(--body);padding:0 4px}
-.addrow{display:flex;gap:8px}
-input[type=text],input[type=search]{flex:1;min-width:0;font:400 14px var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:9px 10px}
-.btn{font:600 13px var(--body);border:1px solid var(--ink);background:var(--ink);color:var(--panel);border-radius:4px;padding:8px 14px;cursor:pointer}
-.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
-.local{margin-top:14px;padding:12px;border-radius:4px;background:var(--bg);font-size:14px}
-.local b{font-family:var(--display);font-size:22px;font-weight:800}
-.example{font-size:12px;color:var(--muted);margin-top:6px}
-
-/* Fronts */
-.front{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;font-size:13px;margin-top:8px}
-.front .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.front .bar{height:10px;background:var(--line);border-radius:2px;overflow:hidden}
-.front .bar span{display:block;height:100%;background:var(--accent)}
-.front .n{font:500 12px var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+/* Controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.seg{display:inline-flex;padding:3px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;color:var(--muted);font:500 12.5px var(--sans);padding:6px 12px;border-radius:7px;cursor:pointer;transition:background .15s,color .15s}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed=true]{background:var(--surface-hi);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line-hi)}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+.switch input{appearance:none;width:28px;height:16px;border-radius:999px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#cfd6df;transition:transform .15s}
+.switch input:checked{background:rgba(165,216,255,.45)}
+.switch input:checked::after{transform:translateX(12px);background:#fff}
+.search{position:relative;flex:1 1 220px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--faint)}
+input[type=text],input[type=search]{width:100%;font:400 13.5px var(--sans);color:var(--ink);background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:9px 12px;transition:border-color .15s,background .15s}
+.search input{padding-left:34px}
+input::placeholder{color:var(--faint)}
+input[type=text]:focus,input[type=search]:focus{outline:none;border-color:rgba(165,216,255,.45);background:rgba(255,255,255,.05)}
+.count{font:400 11.5px var(--mono);color:var(--faint);margin:2px 0 8px}
 
 /* Alerts */
-.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 6px}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
-.seg button{border:0;background:transparent;color:var(--ink);font:500 13px var(--body);padding:7px 12px;cursor:pointer}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--panel)}
-.toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
-.count{font:500 12px var(--mono);color:var(--muted);margin:4px 0 10px}
-.alerts{display:grid;gap:10px}
-.alert{border:1px solid var(--line);border-left:5px solid var(--sev);border-radius:4px;padding:12px 14px;background:var(--panel);display:grid;gap:6px}
-.alert.mine{box-shadow:inset 0 0 0 1px var(--accent)}
-.alert .top{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
-.alert .cve{font:500 13px var(--mono)}
-.alert .vp{font-weight:600}
-.alert p{margin:0;font-size:14px;color:var(--muted);max-width:75ch}
-.tags{display:flex;flex-wrap:wrap;gap:6px}
-.tag{font:500 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.05em;padding:4px 7px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
-.tag.r{border-color:var(--warn);color:var(--warn)}
-.tag.m{border-color:var(--accent);color:var(--accent)}
-.tag.late{background:var(--warn);border-color:var(--warn);color:var(--panel)}
-.more{justify-self:center}
-.scale{display:grid;gap:8px;margin-top:10px}
-.scale div{display:grid;grid-template-columns:14px 1fr;gap:10px;font-size:13px;align-items:start}
-.scale i{width:14px;height:14px;border-radius:2px;margin-top:3px}
-  .loading{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--panel);font:500 13px var(--body);padding:8px 14px;border-radius:4px;max-width:calc(100% - 32px)}
-footer{font-size:12px;color:var(--muted);max-width:80ch}
+.alerts{display:grid}
+.alert{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:6px 14px;padding:16px 4px;border-top:1px solid var(--line);cursor:pointer}
+.alert:hover{background:linear-gradient(90deg,rgba(255,255,255,.025),transparent)}
+.alert .dot{width:8px;height:8px;border-radius:50%;margin-top:7px;background:var(--sev);box-shadow:0 0 10px var(--sev)}
+.alert .title{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}
+.alert .vp{font-weight:500;font-size:14.5px;color:var(--ink)}
+.alert .cve{font:400 12px var(--mono);color:var(--muted)}
+.alert p{grid-column:2/4;margin:0;color:var(--muted);font-size:13.5px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.alert.open p{display:block}
+.alert .meta{grid-column:2/4;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.alert .due{font:400 12px var(--mono);color:var(--muted);white-space:nowrap;text-align:right}
+.alert .due.soon{color:var(--watch)}
+.alert .due.late{color:var(--faint)}
+.tag{font:500 10.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:6px;background:rgba(255,255,255,.045);color:var(--muted)}
+.tag.r{background:rgba(255,90,95,.12);color:#ff8a8d}
+.tag.m{background:rgba(165,216,255,.12);color:var(--ice)}
+.alert .link{font:400 12px var(--mono)}
+.more{margin:14px auto 0;display:block}
 
-@media (max-width:860px){
+/* Buttons */
+.btn{font:500 13px var(--sans);border:1px solid var(--line-hi);background:var(--surface-hi);color:var(--ink);border-radius:10px;padding:9px 14px;cursor:pointer;transition:background .15s,border-color .15s}
+.btn:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.22)}
+.btn.primary{background:var(--ink);color:#0b0e13;border-color:var(--ink)}
+.btn.primary:hover{background:#fff}
+
+/* Stack */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 12px}
+.chip{display:inline-flex;align-items:center;gap:4px;font:500 12.5px var(--sans);color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line);padding:5px 6px 5px 11px;border-radius:999px}
+.chip button{border:0;background:transparent;color:var(--faint);cursor:pointer;font:400 15px/1 var(--sans);width:20px;height:20px;border-radius:50%;display:grid;place-items:center}
+.chip button:hover{color:var(--ink);background:rgba(255,255,255,.08)}
+.addrow{display:flex;gap:8px}
+.note{font-size:12px;color:var(--faint);margin-top:8px}
+.local{margin-top:16px;padding:16px;border-radius:12px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(var(--local-rgb,165,216,255),.08),transparent)}
+.local .lname{font-size:22px;font-weight:300;letter-spacing:-.03em;color:var(--ink)}
+.local p{margin:6px 0 0;color:var(--muted);font-size:13px}
+.local p strong{color:var(--ink);font-weight:500}
+
+/* Fronts */
+.front{display:grid;grid-template-columns:minmax(0,110px) 1fr 24px;gap:12px;align-items:center;font-size:13px;padding:7px 0}
+.front .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#c9d0d9}
+.front .bar{height:4px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+.front .bar span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,rgba(165,216,255,.35),var(--ice))}
+.front .n{font:400 12px var(--mono);text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Scale */
+.scale{display:grid;gap:2px;margin-top:14px}
+.scale div{display:grid;grid-template-columns:8px 1fr;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.scale div.on{color:#c9d0d9}
+.scale i{width:8px;height:8px;border-radius:50%;margin-top:6px}
+.scale strong{color:var(--ink);font-weight:500}
+
+footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+footer p{margin:0;max-width:78ch}
+
+/* Load-in */
+@media (prefers-reduced-motion:no-preference){
+  .rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .rise.d1{animation-delay:.06s}.rise.d2{animation-delay:.12s}.rise.d3{animation-delay:.18s}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+}
+
+@media (max-width:900px){
   .hero,.cols{grid-template-columns:1fr}
-  .readouts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .radar{max-width:520px;width:100%;justify-self:center}
+}
+@media (max-width:560px){
+  .wrap{padding:0 16px 48px}
+  .cond{padding:24px 20px 20px}
+  .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .metric:nth-child(3){padding-left:0;border-left:0}
+  .metric:nth-child(n+3){border-top:1px solid var(--line)}
+  .status .hide-sm{display:none}
+  .alert{grid-template-columns:10px minmax(0,1fr)}
+  .alert .due{grid-column:2;text-align:left}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="station">
-    <h1>Cyber <span>Weather</span></h1>
-    <div class="meta" id="stationMeta"></div>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10.5" stroke="rgba(255,255,255,.22)"/><circle cx="12" cy="12" r="6" stroke="rgba(255,255,255,.22)"/><path d="M12 12 L12 1.5 A10.5 10.5 0 0 1 21.6 7.7 Z" fill="rgba(var(--lvl-rgb),.35)"/><circle cx="16.5" cy="6.8" r="1.6" fill="var(--lvl)"/><circle cx="12" cy="12" r="1.3" fill="#fff"/></svg>
+      Cyber Weather
+    </div>
+    <div class="status">
+      <span class="live off" id="live"><i></i><span id="liveText">Connecting</span></span>
+      <span class="sep hide-sm"></span>
+      <span class="hide-sm" id="catalogMeta">CISA KEV</span>
+    </div>
   </header>
 
   <section class="hero">
-    <div class="panel cond" id="cond">
-      <div class="label">Current conditions · threat level from newly exploited vulnerabilities</div>
-      <div class="level" id="level"></div>
-      <div class="alert-type" id="alertType"></div>
-      <div class="summary" id="summary"></div>
-      <div class="readouts" id="readouts"></div>
-      <div class="advice" id="advice"></div>
+    <div class="panel cond rise" id="cond">
+      <div class="eyebrow">Current conditions</div>
+      <h1 class="level" id="level">Reading the sky…</h1>
+      <span class="badge" id="badge"><i></i><span id="alertType">Loading</span></span>
+      <p class="summary" id="summary" style="margin-top:18px">Fetching the latest catalog of actively exploited vulnerabilities from CISA.</p>
+      <div class="metrics" id="readouts"></div>
+      <div class="advice" id="adviceBox" hidden>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.5 14.5 13.5H1.5L8 1.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6v3.5M8 11.3v.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span id="advice"></span>
+      </div>
     </div>
-    <div class="radar">
-      <div class="label">Threat radar · last 30 days</div>
-      <canvas id="radar" width="600" height="600" aria-label="Radar of vulnerabilities added in the last 30 days. Center is the newest."></canvas>
-      <div class="legend"><span><i style="background:#ffb53d"></i>Exploited</span><span><i style="background:#ff5a4a"></i>Ransomware-linked</span><span>Rings: 7 · 14 · 30 days ago</span></div>
+    <div class="panel radar rise d1">
+      <div class="panel-head" style="margin:0">
+        <h2>Threat radar</h2><span class="eyebrow">Last 30 days</span>
+      </div>
+      <canvas id="radar" width="640" height="640" aria-label="Radar of vulnerabilities added in the last 30 days. The center is the newest."></canvas>
+      <div class="legend">
+        <span><i style="background:#dfe7f1"></i>Exploited</span>
+        <span><i style="background:var(--warn)"></i>Ransomware</span>
+        <span><i style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--ice)"></i>In your stack</span>
+      </div>
     </div>
   </section>
 
-  <section class="panel">
-    <div class="chart-head">
+  <section class="panel record rise d2">
+    <div class="panel-head">
       <div>
-        <h2>The 14-day record</h2>
-        <div class="sub">Vulnerabilities CISA confirmed as actively exploited, by the day they were added. The dashed line is this year's daily average.</div>
+        <h2>14-day record</h2>
+        <div class="sub">Vulnerabilities CISA confirmed as actively exploited, by day added. Dashed line: this year's daily average.</div>
       </div>
-      <div class="label" id="yearStat"></div>
+      <div class="stat" id="yearStat"></div>
     </div>
     <svg id="bars" role="img" aria-label="Daily count of newly exploited vulnerabilities over the last 14 days"></svg>
   </section>
 
-  <div class="cols">
+  <div class="cols rise d3">
     <section class="panel">
-      <h2>Active alerts</h2>
-      <div class="sub">Each one is being used in real attacks right now. Red stripes are linked to ransomware. U.S. federal agencies must patch by the date shown, and it's a good deadline for everyone else.</div>
-      <div class="toolbar">
+      <div class="panel-head">
+        <div>
+          <h2>Active alerts</h2>
+          <div class="sub">Each one is being used in real attacks. Patch-by dates are CISA's federal deadlines and a sensible target for everyone else. Click an alert to read more.</div>
+        </div>
+      </div>
+      <div class="controls">
         <div class="seg" role="group" aria-label="Time range">
           <button type="button" data-range="7" aria-pressed="false">7 days</button>
           <button type="button" data-range="30" aria-pressed="true">30 days</button>
           <button type="button" data-range="90" aria-pressed="false">90 days</button>
         </div>
-        <label class="toggle" for="onlyMine"><input type="checkbox" id="onlyMine"> Only my stack</label>
-        <label class="toggle" for="onlyRansom"><input type="checkbox" id="onlyRansom"> Only ransomware</label>
+        <label class="switch" for="onlyMine"><input type="checkbox" id="onlyMine">My stack</label>
+        <label class="switch" for="onlyRansom"><input type="checkbox" id="onlyRansom">Ransomware</label>
       </div>
-      <input type="search" id="search" placeholder="Search vendor, product or CVE" aria-label="Search alerts">
+      <div class="search" style="margin-bottom:10px">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <input type="search" id="search" placeholder="Search vendor, product or CVE" aria-label="Search alerts">
+      </div>
       <div class="count" id="count"></div>
       <div class="alerts" id="alerts"></div>
     </section>
@@ -189,25 +281,25 @@ footer{font-size:12px;color:var(--muted);max-width:80ch}
     <div class="side">
       <section class="panel">
         <h2>Your local forecast</h2>
-        <div class="sub">Add the vendors and products your organization runs. Matching alerts get flagged throughout the page.</div>
+        <div class="sub">Add the vendors and products you run. Matches are flagged across the page.</div>
         <div class="chips" id="chips"></div>
         <form class="addrow" id="addForm">
-          <input type="text" id="addInput" placeholder="e.g. Fortinet, Chrome, Exchange" aria-label="Add a vendor or product">
-          <button class="btn" type="submit">Add</button>
+          <input type="text" id="addInput" placeholder="Fortinet, Exchange, Chrome…" aria-label="Add a vendor or product">
+          <button class="btn primary" type="submit">Add</button>
         </form>
-        <div class="example" id="exampleNote"></div>
+        <div class="note" id="exampleNote"></div>
         <div class="local" id="local"></div>
       </section>
 
       <section class="panel">
-        <h2>Storm fronts</h2>
-        <div class="sub">Vendors with the most newly exploited vulnerabilities in the last 90 days.</div>
+        <div class="panel-head" style="margin-bottom:6px"><h2>Storm fronts</h2><span class="eyebrow">90 days</span></div>
+        <div class="sub" style="margin-bottom:8px">Vendors with the most newly exploited vulnerabilities.</div>
         <div id="fronts"></div>
       </section>
 
       <section class="panel">
         <h2>How to read the sky</h2>
-        <div class="sub">The level compares the last 7 days with every 7-day stretch in the past year. Two or more ransomware-linked additions in a week raise it one step.</div>
+        <div class="sub">This week's count is ranked against every 7-day stretch of the past year. Two or more ransomware-linked additions raise the level one step.</div>
         <div class="scale" id="scale"></div>
       </section>
     </div>
@@ -216,30 +308,32 @@ footer{font-size:12px;color:var(--muted);max-width:80ch}
   <footer id="footer"></footer>
 </div>
 
-
-<div class="loading" id="loading" role="status">Loading the latest forecast…</div>
-
 <script src="/forecast.js"></script>
 <script>
 (function(){
 const CF = window.CyberForecast;
 const DAY = CF.DAY;
+const $ = id => document.getElementById(id);
 const fmt = (s, opts={month:"short", day:"numeric"}) => new Date(CF.dayIndex(s)*DAY).toLocaleDateString("en-US", {...opts, timeZone:"UTC"});
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const RGB = {"--clear":"90,169,255","--cloudy":"163,175,191","--watch":"243,181,74","--warn":"255,90,95"};
 
 fetch("/api/kev")
   .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
   .then(start)
   .catch(err => {
-    document.getElementById("loading").textContent = "Couldn't load the forecast. Check that the server is running, then refresh the page. (" + err.message + ")";
+    $("level").textContent = "No signal";
+    $("alertType").textContent = "Offline";
+    $("summary").textContent = "Couldn't load the forecast. Check your connection, then refresh the page. (" + err.message + ")";
+    $("liveText").textContent = "Offline";
   });
 
 function start(DATA){
-document.getElementById("loading").remove();
 const F = CF.compute(DATA.v, DATA.released);
-const V = F.vulns;
-const L = F.level;
+const V = F.vulns, L = F.level;
+const root = document.documentElement;
+root.style.setProperty("--lvl", `var(${L.color})`);
+root.style.setProperty("--lvl-rgb", RGB[L.color]);
 
 /* ---------- stack (per-viewer, saved in this browser) ---------- */
 const EXAMPLE = ["Microsoft", "Cisco", "Fortinet", "Google Chrome"];
@@ -249,107 +343,129 @@ if (!Array.isArray(stack)) { stack = EXAMPLE.slice(); isExample = true; }
 const saveStack = () => { isExample = false; try { localStorage.setItem("cw-stack", JSON.stringify(stack)); } catch(e) {} };
 const mine = x => CF.matchesStack(x, stack);
 
-/* ---------- header + hero ---------- */
-const updated = DATA.fetchedAt ? `Updated ${new Date(DATA.fetchedAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}` : "Offline snapshot";
-document.getElementById("stationMeta").textContent =
-  `Observed ${fmt(DATA.released,{month:"short",day:"numeric",year:"numeric"})} · CISA KEV v${DATA.version} · ${DATA.total.toLocaleString()} total · ${updated}`;
-document.getElementById("cond").style.setProperty("--lvl", `var(${L.color})`);
-document.getElementById("level").textContent = L.name;
-document.getElementById("alertType").textContent = L.alert + (F.raisedForRansomware ? " · raised for ransomware" : "");
+/* ---------- top bar ---------- */
+const live = DATA.fetchedAt;
+$("live").classList.toggle("off", !live);
+$("liveText").textContent = live ? "Live · updated " + new Date(DATA.fetchedAt).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) : "Offline snapshot";
+$("catalogMeta").textContent = `Observed ${fmt(DATA.released,{month:"short",day:"numeric",year:"numeric"})} · KEV ${DATA.version} · ${DATA.total.toLocaleString()} total`;
 
+/* ---------- hero ---------- */
+$("level").textContent = L.name;
+$("alertType").textContent = L.alert + (F.raisedForRansomware ? " · raised for ransomware" : "");
 const c7 = F.newLast7Days, r7 = F.ransomwareLast7Days, top7 = F.topVendorsLast7Days.slice(0,2).map(t => t.vendor);
-document.getElementById("summary").innerHTML =
-  `<strong>${c7} newly exploited ${c7===1?"vulnerability":"vulnerabilities"}</strong> in the last 7 days, more than in ${F.percentileVsPastYear}% of weeks this year.` +
+$("summary").innerHTML =
+  `<strong>${c7} newly exploited ${c7===1?"vulnerability":"vulnerabilities"}</strong> in the past 7 days, more than in ${F.percentileVsPastYear}% of weeks this year.` +
   (r7 ? ` ${r7} ${r7===1?"is":"are"} linked to ransomware.` : " None are linked to ransomware so far.") +
   (top7.length ? ` Heaviest activity: ${top7.map(esc).join(" and ")}.` : "");
-document.getElementById("advice").textContent = L.advice;
+$("advice").textContent = L.advice;
+$("adviceBox").hidden = false;
 
 function renderReadouts(){
-  document.getElementById("readouts").innerHTML = [
+  $("readouts").innerHTML = [
     ["Pressure", c7, "new in 7 days"],
     ["Ransomware", r7, "linked in 7 days"],
     ["Deadlines", F.deadlinesNext14Days, "patch-by dates in 14 days"],
     ["Your stack", V.filter(x => x.ago < 7 && mine(x)).length, "matches in 7 days"]
-  ].map(([l,n,s]) => `<div><span class="label">${l}</span><b>${n}</b><small>${s}</small></div>`).join("");
+  ].map(([l,n,s]) => `<div class="metric"><span class="eyebrow">${l}</span><b>${n}</b><small>${s}</small></div>`).join("");
 }
 
 /* ---------- 14-day bars ---------- */
-document.getElementById("yearStat").textContent = `${F.addedPastYear} added in the past year · ${F.dailyAverage.toFixed(1)} per day on average`;
+$("yearStat").textContent = `${F.addedPastYear} in the past year · ${F.dailyAverage.toFixed(1)}/day avg`;
 function drawBars(){
-  const svg = document.getElementById("bars");
-  const W = svg.clientWidth || 800, H = 180, padL = 26, padB = 26, padT = 20;
+  const svg = $("bars");
+  const W = svg.clientWidth || 800, H = 190, padL = 24, padB = 28, padT = 22;
   const days = F.last14Days;
   const max = Math.max(4, ...days.map(d=>d.count));
   const ticks = max <= 6 ? [0,2,4,6].filter(t=>t<=max) : [0, Math.round(max/2), max];
   const y = n => padT + (H-padT-padB) * (1 - n/max);
   const bw = (W - padL) / days.length;
-  let s = "";
-  ticks.forEach(t => { s += `<line x1="${padL}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="${css('--line')}" stroke-width="1"/><text x="${padL-8}" y="${y(t)+4}" text-anchor="end">${t}</text>`; });
+  let s = `<defs>
+    <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dfe7f1" stop-opacity=".55"/><stop offset="1" stop-color="#dfe7f1" stop-opacity=".08"/></linearGradient>
+    <linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(${getComputedStyle(root).getPropertyValue('--lvl-rgb')})" stop-opacity="1"/><stop offset="1" stop-color="rgb(${getComputedStyle(root).getPropertyValue('--lvl-rgb')})" stop-opacity=".15"/></linearGradient>
+  </defs>`;
+  ticks.forEach(t => { s += `<line x1="${padL}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="rgba(255,255,255,.06)"/><text x="${padL-8}" y="${y(t)+4}" text-anchor="end">${t}</text>`; });
   days.forEach((d,i) => {
-    const x = padL + i*bw + bw*.18, w = bw*.64;
-    const col = d.ago === 0 ? css('--accent') : css('--muted');
+    const w = Math.min(34, bw*.56), x = padL + i*bw + (bw-w)/2;
     if (d.count) {
-      s += `<rect x="${x}" y="${y(d.count)}" width="${w}" height="${y(0)-y(d.count)}" rx="2" fill="${col}" opacity="${d.ago===0?1:.55}"><title>${d.count} added</title></rect>`;
-      s += `<text x="${x+w/2}" y="${y(d.count)-4}" text-anchor="middle" style="fill:${css('--ink')}">${d.count}</text>`;
+      s += `<rect x="${x}" y="${y(d.count)}" width="${w}" height="${y(0)-y(d.count)}" rx="4" fill="url(#${d.ago===0?"gl":"gb"})"><title>${d.count} added</title></rect>`;
+      s += `<text x="${x+w/2}" y="${y(d.count)-7}" text-anchor="middle" style="fill:${d.ago===0?"#fff":"#aab3bf"}">${d.count}</text>`;
+    } else {
+      s += `<rect x="${x}" y="${y(0)-2}" width="${w}" height="2" rx="1" fill="rgba(255,255,255,.08)"/>`;
     }
-    if (i % (W < 500 ? 2 : 1) === 0 || d.ago === 0)
-      s += `<text x="${x+w/2}" y="${H-8}" text-anchor="middle">${d.ago===0?"Latest":fmt(d.date,{month:"numeric",day:"numeric"})}</text>`;
+    if (i % (W < 520 ? 2 : 1) === 0 || d.ago === 0)
+      s += `<text x="${x+w/2}" y="${H-8}" text-anchor="middle" style="${d.ago===0?"fill:#e9edf2":""}">${d.ago===0?"Latest":fmt(d.date,{month:"numeric",day:"numeric"})}</text>`;
   });
-  s += `<line x1="${padL}" x2="${W}" y1="${y(F.dailyAverage)}" y2="${y(F.dailyAverage)}" stroke="${css('--accent')}" stroke-dasharray="4 4" stroke-width="1.5"/>`;
+  s += `<line x1="${padL}" x2="${W}" y1="${y(F.dailyAverage)}" y2="${y(F.dailyAverage)}" stroke="rgba(165,216,255,.55)" stroke-dasharray="3 5" stroke-width="1.2"/>`;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.innerHTML = s;
 }
 
 /* ---------- radar ---------- */
-const canvas = document.getElementById("radar"), ctx = canvas.getContext("2d");
+const canvas = $("radar"), ctx = canvas.getContext("2d");
+const LV = RGB[L.color];
 const hash = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h>>>0) / 4294967296; };
 const blips = V.filter(x => x.ago < 30).map(x => ({x, ang: hash(x.v) * Math.PI*2 + (hash(x.c)-.5)*.35, rad: (x.ago + .5 + hash(x.c+"r")*.6) / 30}));
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let sweep = -Math.PI/2, last = performance.now();
 function drawRadar(){
-  const S = canvas.width, c = S/2, R = c - 18;
+  const S = canvas.width, c = S/2, R = c - 24;
   ctx.clearRect(0,0,S,S);
-  ctx.strokeStyle = "rgba(90,170,180,.35)"; ctx.lineWidth = 1.5;
-  [7,14,30].forEach(d => { ctx.beginPath(); ctx.arc(c,c,R*d/30,0,Math.PI*2); ctx.stroke(); });
+  // faint fill
+  const bg = ctx.createRadialGradient(c,c,0,c,c,R);
+  bg.addColorStop(0,`rgba(${LV},.07)`); bg.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(c,c,R,0,Math.PI*2); ctx.fill();
+  // rings + crosshair
+  ctx.lineWidth = 1;
+  [7,14,30].forEach(d => { ctx.strokeStyle = d===30 ? "rgba(255,255,255,.14)" : "rgba(255,255,255,.07)"; ctx.beginPath(); ctx.arc(c,c,R*d/30,0,Math.PI*2); ctx.stroke(); });
+  ctx.strokeStyle = "rgba(255,255,255,.05)";
   ctx.beginPath(); ctx.moveTo(c-R,c); ctx.lineTo(c+R,c); ctx.moveTo(c,c-R); ctx.lineTo(c,c+R); ctx.stroke();
-  ctx.fillStyle = "rgba(140,200,208,.75)"; ctx.font = "500 18px 'IBM Plex Mono', monospace";
-  [7,14,30].forEach(d => ctx.fillText(d+"d", c + 6, c - R*d/30 + 20));
-  if (!reduce) {
-    const g = ctx.createConicGradient ? ctx.createConicGradient(sweep - 0.9, c, c) : null;
-    if (g) { g.addColorStop(0,"rgba(63,208,220,0)"); g.addColorStop(.143,"rgba(63,208,220,.28)"); g.addColorStop(.1431,"rgba(63,208,220,0)"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c,c,R,0,Math.PI*2); ctx.fill(); }
-    ctx.strokeStyle = "rgba(120,235,245,.9)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(c,c); ctx.lineTo(c+Math.cos(sweep)*R, c+Math.sin(sweep)*R); ctx.stroke();
+  // ticks around the edge
+  for (let i = 0; i < 72; i++) { const a = i/72*Math.PI*2, l = i%6===0 ? 10 : 4; ctx.strokeStyle = "rgba(255,255,255,.12)"; ctx.beginPath(); ctx.moveTo(c+Math.cos(a)*R, c+Math.sin(a)*R); ctx.lineTo(c+Math.cos(a)*(R+l), c+Math.sin(a)*(R+l)); ctx.stroke(); }
+  ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.font = "400 17px 'Geist Mono', monospace";
+  [7,14,30].forEach(d => ctx.fillText(d+"d", c + 8, c - R*d/30 + 20));
+  if (!reduce && ctx.createConicGradient) {
+    const g = ctx.createConicGradient(sweep - 1.1, c, c);
+    g.addColorStop(0,`rgba(${LV},0)`); g.addColorStop(.175,`rgba(${LV},.22)`); g.addColorStop(.1751,`rgba(${LV},0)`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(c,c,R,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = `rgba(${LV},.85)`; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(c,c); ctx.lineTo(c+Math.cos(sweep)*R, c+Math.sin(sweep)*R); ctx.stroke();
   }
   blips.forEach(b => {
     let a = 1;
-    if (!reduce) { let d = (sweep - b.ang) % (Math.PI*2); if (d < 0) d += Math.PI*2; a = Math.max(.25, 1 - d/(Math.PI*2)*1.1); }
+    if (!reduce) { let d = (sweep - b.ang) % (Math.PI*2); if (d < 0) d += Math.PI*2; a = Math.max(.3, 1 - d/(Math.PI*2)*1.15); }
     const px = c + Math.cos(b.ang)*b.rad*R, py = c + Math.sin(b.ang)*b.rad*R;
-    const col = b.x.r ? "255,90,74" : "255,181,61";
+    const col = b.x.r ? "255,90,95" : "223,231,241";
+    ctx.shadowColor = `rgba(${col},${a*.9})`; ctx.shadowBlur = 14;
     ctx.fillStyle = `rgba(${col},${a})`;
-    ctx.beginPath(); ctx.arc(px,py, b.x.r ? 9 : 7, 0, Math.PI*2); ctx.fill();
-    if (mine(b.x)) { ctx.strokeStyle = `rgba(160,240,248,${a})`; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(px,py,14,0,Math.PI*2); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(px,py, b.x.r ? 5.5 : 4, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    if (mine(b.x)) { ctx.strokeStyle = `rgba(165,216,255,${.35 + a*.6})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(px,py,11,0,Math.PI*2); ctx.stroke(); }
   });
-  ctx.fillStyle = "rgba(160,240,248,.9)"; ctx.beginPath(); ctx.arc(c,c,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(c,c,3,0,Math.PI*2); ctx.fill();
 }
-function loop(t){ sweep += (t-last)/1000 * 1.1; last = t; drawRadar(); requestAnimationFrame(loop); }
+function loop(t){ sweep += (t-last)/1000 * 0.9; last = t; drawRadar(); requestAnimationFrame(loop); }
 drawRadar(); if (!reduce) requestAnimationFrame(t => { last = t; loop(t); });
 
-/* ---------- stack UI ---------- */
+/* ---------- stack ---------- */
+const LOCAL_RGB = {"Clear skies":"90,169,255","Partly cloudy":"163,175,191","Storm watch":"243,181,74","Severe storms":"255,90,95"};
 function renderStack(){
-  document.getElementById("chips").innerHTML = stack.map((t,i) =>
-    `<span class="chip">${esc(t)}<button type="button" data-i="${i}" aria-label="Remove ${esc(t)}">×</button></span>`).join("") || `<span class="sub">Nothing added yet.</span>`;
-  document.getElementById("exampleNote").textContent = isExample ? "This is an example stack. Remove these and add your own; they're saved in this browser." : "Saved in this browser.";
+  $("chips").innerHTML = stack.map((t,i) =>
+    `<span class="chip">${esc(t)}<button type="button" data-i="${i}" aria-label="Remove ${esc(t)}">×</button></span>`).join("") || `<span class="note" style="margin:0">Nothing added yet.</span>`;
+  $("exampleNote").textContent = isExample ? "Example stack. Remove these and add your own; your list is saved in this browser." : "Saved in this browser.";
   const lf = CF.localForecast(F, stack), n = lf.nextDeadline;
-  document.getElementById("local").innerHTML =
-    `<b>${lf.name}</b><br>${lf.matchesLast7Days} ${lf.matchesLast7Days===1?"alert":"alerts"} in 7 days and ${lf.matchesLast30Days} in 30 days match your stack.` +
-    (n ? `<br>Next patch-by date: <strong>${fmt(n.d)}</strong> for ${esc(n.v)} ${esc(n.p)} (${esc(n.c)}).` : "");
+  $("local").style.setProperty("--local-rgb", LOCAL_RGB[lf.name]);
+  $("local").innerHTML =
+    `<div class="eyebrow">Your forecast</div><div class="lname" style="margin-top:8px">${lf.name}</div>` +
+    `<p><strong>${lf.matchesLast7Days}</strong> ${lf.matchesLast7Days===1?"match":"matches"} this week, <strong>${lf.matchesLast30Days}</strong> in 30 days.</p>` +
+    (n ? `<p>Next deadline <strong>${fmt(n.d)}</strong>: ${esc(n.v)} ${esc(n.p)} <span class="mono" style="font-size:12px">${esc(n.c)}</span></p>` : "");
   renderReadouts(); renderAlerts(); drawRadar();
 }
-document.getElementById("chips").addEventListener("click", e => {
+$("chips").addEventListener("click", e => {
   const b = e.target.closest("button[data-i]"); if (!b) return;
   stack.splice(+b.dataset.i, 1); saveStack(); renderStack();
 });
-document.getElementById("addForm").addEventListener("submit", e => {
-  e.preventDefault(); const inp = document.getElementById("addInput");
+$("addForm").addEventListener("submit", e => {
+  e.preventDefault(); const inp = $("addInput");
   const v = inp.value.trim(); if (!v) return;
   if (!stack.some(t => t.toLowerCase() === v.toLowerCase())) stack.push(v);
   inp.value = ""; saveStack(); renderStack();
@@ -357,51 +473,57 @@ document.getElementById("addForm").addEventListener("submit", e => {
 
 /* ---------- fronts ---------- */
 const fronts = F.stormFronts90Days, fmax = fronts.length ? fronts[0].count : 1;
-document.getElementById("fronts").innerHTML = fronts.map(({vendor, count}) =>
+$("fronts").innerHTML = fronts.map(({vendor, count}) =>
   `<div class="front"><span class="name" title="${esc(vendor)}">${esc(vendor)}</span><span class="bar"><span style="width:${count/fmax*100}%"></span></span><span class="n">${count}</span></div>`).join("");
 
 /* ---------- scale ---------- */
-document.getElementById("scale").innerHTML = CF.LEVELS.map(l =>
-  `<div><i style="background:var(${l.color})"></i><span><strong>${l.name}</strong> (${l.alert.toLowerCase()}). ${esc(l.advice)}</span></div>`).join("");
+$("scale").innerHTML = CF.LEVELS.map(l =>
+  `<div class="${l.key===L.key?"on":""}"><i style="background:var(${l.color});${l.key===L.key?"box-shadow:0 0 10px var("+l.color+")":""}"></i><span><strong>${l.name}</strong>${l.key===L.key?" · now":""}<br>${esc(l.advice)}</span></div>`).join("");
 
 /* ---------- alerts ---------- */
 let range = 30, shown = 20;
 function renderAlerts(){
-  const q = document.getElementById("search").value.trim().toLowerCase();
-  const onlyMine = document.getElementById("onlyMine").checked, onlyR = document.getElementById("onlyRansom").checked;
+  const q = $("search").value.trim().toLowerCase();
+  const onlyMine = $("onlyMine").checked, onlyR = $("onlyRansom").checked;
   const list = V.filter(x => x.ago < range && (!onlyMine || mine(x)) && (!onlyR || x.r) &&
     (!q || (x.c+" "+x.v+" "+x.p+" "+x.n).toLowerCase().includes(q)));
-  document.getElementById("count").textContent = `${list.length} ${list.length===1?"alert":"alerts"} · newest first`;
+  $("count").textContent = `${list.length} ${list.length===1?"alert":"alerts"} · newest first`;
   const html = list.slice(0, shown).map(x => {
     const m = mine(x);
-    const due = x.dueIn < 0 ? `<span class="tag">Patch-by date passed ${fmt(x.d)}</span>`
-      : `<span class="tag${x.dueIn<=7?" late":""}">Patch by ${fmt(x.d)} · ${x.dueIn===0?"today":x.dueIn===1?"tomorrow":"in "+x.dueIn+" days"}</span>`;
-    return `<article class="alert${m?" mine":""}" style="--sev:var(${x.r?"--warn":"--watch"})">
-      <div class="top"><span class="vp">${esc(x.v)} ${esc(x.p)}</span><a class="cve" href="https://nvd.nist.gov/vuln/detail/${esc(x.c)}" target="_blank" rel="noopener">${esc(x.c)}</a></div>
+    const due = x.dueIn < 0 ? `<span class="due late">Due ${fmt(x.d)} · passed</span>`
+      : `<span class="due${x.dueIn<=7?" soon":""}">Patch by ${fmt(x.d)} · ${x.dueIn===0?"today":x.dueIn===1?"tomorrow":x.dueIn+"d"}</span>`;
+    return `<article class="alert" style="--sev:${x.r?"var(--warn)":"#dfe7f1"}" tabindex="0">
+      <span class="dot"></span>
+      <div class="title"><span class="vp">${esc(x.v)} ${esc(x.p)}</span><a class="cve" href="https://nvd.nist.gov/vuln/detail/${esc(x.c)}" target="_blank" rel="noopener">${esc(x.c)} ↗</a></div>
+      ${due}
       <p>${esc(x.s)}</p>
-      <div class="tags"><span class="tag">Added ${fmt(x.a)}</span>${due}${x.r?'<span class="tag r">Ransomware</span>':""}${m?'<span class="tag m">In your stack</span>':""}</div>
+      <div class="meta"><span class="tag">Added ${fmt(x.a)}</span>${x.r?'<span class="tag r">Ransomware</span>':""}${m?'<span class="tag m">In your stack</span>':""}</div>
     </article>`;
   }).join("");
-  const more = list.length > shown ? `<button class="btn ghost more" type="button" id="moreBtn">Show ${Math.min(20, list.length-shown)} more</button>` : "";
-  document.getElementById("alerts").innerHTML = (html || `<p class="sub">No alerts match. Try a longer time range or clear the search.</p>`) + more;
+  const more = list.length > shown ? `<button class="btn more" type="button" id="moreBtn">Show ${Math.min(20, list.length-shown)} more</button>` : "";
+  $("alerts").innerHTML = (html || `<p class="sub" style="padding:16px 0">No alerts match. Try a longer range or clear the search.</p>`) + more;
 }
-document.getElementById("alerts").addEventListener("click", e => { if (e.target.id === "moreBtn") { shown += 20; renderAlerts(); } });
+$("alerts").addEventListener("click", e => {
+  if (e.target.id === "moreBtn") { shown += 20; renderAlerts(); return; }
+  if (e.target.closest("a")) return;
+  const a = e.target.closest(".alert"); if (a) a.classList.toggle("open");
+});
+$("alerts").addEventListener("keydown", e => {
+  const a = e.target.closest(".alert"); if (a && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); a.classList.toggle("open"); }
+});
 document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
   range = +b.dataset.range; shown = 20;
   document.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", o === b));
   renderAlerts();
 }));
-["search","onlyMine","onlyRansom"].forEach(id => document.getElementById(id).addEventListener("input", () => { shown = 20; renderAlerts(); }));
+["search","onlyMine","onlyRansom"].forEach(id => $(id).addEventListener("input", () => { shown = 20; renderAlerts(); }));
 
-document.getElementById("footer").innerHTML =
-  `Source: <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities catalog</a>, refreshed automatically every few hours. ` +
-  `Patch-by dates are CISA's deadlines for U.S. federal agencies. The forecast is a rough gauge, not a risk assessment of your environment. ` +
-  `Developers: the same forecast is available as JSON at <a href="/api/forecast">/api/forecast</a>.`;
+$("footer").innerHTML =
+  `<p>Data from the <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities catalog</a>, refreshed every few hours. The forecast is a rough gauge, not a risk assessment of your environment.</p>` +
+  `<p>Developers: <a href="/api/forecast">/api/forecast</a></p>`;
 
 renderStack(); drawBars();
 addEventListener("resize", drawBars);
-matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", drawBars);
-new MutationObserver(drawBars).observe(document.documentElement, {attributes:true, attributeFilter:["data-theme"]});
 }
 })();
 </script>
