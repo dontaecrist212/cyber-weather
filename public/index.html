@@ -2,307 +2,319 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cyber Weather</title>
-<meta name="description" content="A daily threat briefing built from CISA's catalog of actively exploited vulnerabilities.">
-<meta name="theme-color" content="#eceee8">
+<meta name="description" content="Live forecast of actively exploited vulnerabilities, from CISA's KEV catalog.">
+<meta name="theme-color" content="#0c0d10">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Cyber Weather">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@400;600;700&family=Overpass:wght@400;600;800;900&display=swap" rel="stylesheet">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
-/* Layout: a printed pre-flight weather briefing. Numbered sections, ruled tables,
-   coded report line with its decode. Ink on paper; sectional-chart magenta marks hazards,
-   chart blue marks links and your own stations. Single theme by design. */
+/* Layout: an app shell. Top bar, radar as the hero with the current reading beside it,
+   a day strip and detail cards like a weather app, then the advisory list and your stack.
+   Solid surfaces, system type, color reserved for the radar and the level. */
 :root{
-  --paper:#eceee8;
-  --sheet:#f7f8f4;
-  --ink:#14171a;
-  --ink-2:#4a5057;
-  --rule:#14171a;
-  --hair:#c6cac2;
-  --magenta:#a3195b;
-  --blue:#1f4e8c;
-  --amber:#9a6500;
-  --mono:"Overpass Mono",ui-monospace,Menlo,Consolas,monospace;
-  --sans:"Overpass","Arial Narrow",Arial,sans-serif;
-  color-scheme:light;
+  --bg:#0c0d10;
+  --card:#15171b;
+  --card-2:#1b1e23;
+  --line:#25282e;
+  --text:#ececf1;
+  --muted:#8d919a;
+  --dim:#5d626b;
+  --blue:#4c9dff;
+  --green:#3ccf7a; --yellow:#f2c94c; --orange:#f2994a; --red:#eb5757; --magenta:#d45ad8;
+  --lvl:var(--red);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{margin:0}
-body{background:var(--paper);color:var(--ink);font:400 14px/1.5 var(--mono);-webkit-font-smoothing:antialiased}
-a{color:var(--blue)}
-:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-h1,h2,h3{margin:0;text-wrap:balance}
-.page{max-width:1120px;margin:0 auto;padding:28px 20px 56px}
-.sheet{background:var(--sheet);border:1px solid var(--rule);box-shadow:4px 4px 0 var(--hair)}
+html,body{margin:0;background:var(--bg)}
+body{color:var(--text);font:400 14px/1.45 var(--font);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+.num{font-variant-numeric:tabular-nums}
 
-/* Header block: like a form header */
-.head{display:grid;grid-template-columns:auto 1fr auto;border-bottom:3px double var(--rule)}
-.head > div{padding:14px 18px}
-.head .mark{border-right:1px solid var(--rule);display:flex;align-items:center;gap:12px}
-.head .mark svg{width:34px;height:34px}
-.head h1{font:900 22px/1 var(--sans);letter-spacing:.04em;text-transform:uppercase}
-.head h1 small{display:block;font:600 11px/1.4 var(--mono);letter-spacing:.08em;color:var(--ink-2);margin-top:4px}
-.head .fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-right:1px solid var(--rule);padding:0}
-.field{padding:10px 14px;border-right:1px solid var(--hair)}
-.field:last-child{border-right:0}
-.k{display:block;font:600 10px/1.2 var(--mono);letter-spacing:.1em;color:var(--ink-2);text-transform:uppercase}
-.v{display:block;font:600 14px/1.4 var(--mono);margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.head .stamp{display:flex;align-items:center}
-.stampbox{border:2px solid var(--lvl,var(--magenta));color:var(--lvl,var(--magenta));font:800 13px/1.1 var(--sans);letter-spacing:.08em;text-transform:uppercase;padding:7px 10px;transform:rotate(-2deg);text-align:center}
+/* App bar */
+.bar{position:sticky;top:0;z-index:20;background:rgba(12,13,16,.92);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+@supports (backdrop-filter:blur(1px)){.bar{background:rgba(12,13,16,.8);backdrop-filter:saturate(1.4) blur(14px)}}
+.bar-in{max-width:1240px;margin:0 auto;padding:0 20px;height:56px;display:flex;align-items:center;gap:20px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+.logo img{width:26px;height:26px;border-radius:7px}
+.tabs{display:flex;gap:2px;margin-left:8px}
+.tabs a{color:var(--muted);font-weight:500;padding:6px 10px;border-radius:8px;font-size:13.5px}
+.tabs a:hover{color:var(--text);background:var(--card);text-decoration:none}
+.tabs a.on{color:var(--text);background:var(--card-2)}
+.updated{margin-left:auto;color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.updated .d{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.updated.off .d{background:var(--dim)}
 
-/* Sections */
-.sec{border-bottom:1px solid var(--rule)}
-.sec:last-child{border-bottom:0}
-.sec-h{display:flex;align-items:baseline;gap:12px;padding:10px 18px;border-bottom:1px solid var(--hair);background:linear-gradient(var(--sheet),var(--sheet))}
-.sec-h .n{font:700 12px var(--mono);color:var(--ink-2)}
-.sec-h h2{font:800 14px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase}
-.sec-h .aside{margin-left:auto;font:400 12px var(--mono);color:var(--ink-2)}
-.sec-b{padding:16px 18px}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 20px 48px;display:grid;gap:16px}
+.wrap > *,.hero > *,.main > *,.side > *,.tiles > *{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
+.card-h{display:flex;align-items:center;gap:8px;padding:14px 16px 0;color:var(--muted);font-size:12.5px;font-weight:500}
+.card-h svg{width:15px;height:15px;flex:none}
+.card-h .r{margin-left:auto;color:var(--dim);font-weight:400}
 
-/* 1. Conditions */
-.cond{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr)}
-.cond > div:first-child{border-right:1px solid var(--rule)}
-.coded{font:600 15px/1.6 var(--mono);background:var(--paper);border:1px solid var(--hair);padding:10px 12px;word-break:break-word;letter-spacing:.02em}
-.coded .hz{color:var(--magenta)}
-.level{font:900 clamp(40px,6.2vw,72px)/.92 var(--sans);text-transform:uppercase;letter-spacing:-.01em;margin:18px 0 6px;color:var(--ink)}
-.level .lv{color:var(--lvl)}
-.summary{font:400 15px/1.6 var(--sans);max-width:60ch;margin:10px 0 0}
-.decode{width:100%;border-collapse:collapse;margin-top:16px;font-variant-numeric:tabular-nums}
-.decode td{padding:7px 0;border-top:1px solid var(--hair);vertical-align:top}
-.decode td:first-child{width:9.5em;font-weight:600;color:var(--ink-2);font-size:12px;letter-spacing:.06em;padding-top:9px}
-.decode td:nth-child(2){font-weight:700;width:4.5em;font-size:16px}
-.decode td:last-child{color:var(--ink-2);font-size:13px}
-.remarks{margin-top:14px;padding-top:10px;border-top:1px solid var(--rule);font:400 13.5px/1.55 var(--sans)}
-.remarks b{font:700 11px var(--mono);letter-spacing:.1em;margin-right:6px}
+/* Hero */
+.hero{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:16px}
+.radar-card{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.radar-stage{position:relative;flex:1;min-height:500px;background:#0a0b0d}
+#radar{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.tip{position:absolute;pointer-events:none;background:#202329;border:1px solid #33373e;border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.35;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;z-index:2}
+.tip.show{opacity:1;transform:none}
+.tip b{display:block;font-weight:600}
+.tip span{color:var(--muted)}
+.radar-top{position:absolute;left:14px;top:12px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;z-index:1;pointer-events:none}
+.chip{display:inline-flex;align-items:center;gap:6px;background:rgba(21,23,27,.85);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:12px;color:var(--muted);pointer-events:auto}
+.chip b{color:var(--text);font-weight:600}
+.radar-ctl{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line);background:var(--card)}
+.play{width:34px;height:34px;border-radius:50%;border:0;background:var(--text);color:#0c0d10;display:grid;place-items:center;cursor:pointer;flex:none}
+.play:hover{background:#fff}
+.play svg{width:14px;height:14px}
+.scrub{flex:1;display:grid;gap:4px;min-width:0}
+.scrub-l{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim)}
+.scrub-l b{color:var(--text);font-weight:600}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;background:var(--line);outline:none;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--text);cursor:pointer;border:0}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--text);cursor:pointer;border:0}
+.scale{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dim);width:120px;flex:none}
+.scale i{display:block;height:6px;border-radius:3px;background:linear-gradient(90deg,#1d7a55,#3ccf7a,#f2c94c,#f2994a,#eb5757,#d45ad8)}
+.scale span{display:flex;justify-content:space-between}
 
-.scope{padding:14px 18px 16px;display:grid;gap:10px;align-content:start}
-.scope canvas{width:100%;aspect-ratio:1;display:block}
-.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font:400 11.5px var(--mono);color:var(--ink-2)}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.sw{display:inline-block;width:8px;height:8px;border-radius:50%}
+.now{padding:20px 20px 18px;display:flex;flex-direction:column}
+.now .where{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:6px}
+.now .big{display:flex;align-items:flex-end;gap:14px;margin-top:14px}
+.now .big .n{font-size:76px;font-weight:300;line-height:.9;letter-spacing:-.04em}
+.now .big .u{color:var(--muted);font-size:14px;line-height:1.3;padding-bottom:8px}
+.now .cond{display:flex;align-items:center;gap:10px;margin-top:16px}
+.now .cond svg{width:30px;height:30px;color:var(--lvl);flex:none}
+.now .cond h1{font-size:26px;font-weight:600;letter-spacing:-.02em}
+.now .sum{color:var(--muted);font-size:14px;margin-top:8px;line-height:1.5}
+.level-pill{display:inline-flex;align-items:center;gap:6px;margin-top:14px;align-self:flex-start;font-size:12px;font-weight:600;color:var(--lvl);background:color-mix(in srgb,var(--lvl) 14%,transparent);border-radius:999px;padding:4px 10px}
+.advice{margin-top:auto;padding-top:16px}
+.advice p{background:var(--card-2);border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.5;color:#cfd2d8}
+.advice p b{color:var(--text);font-weight:600}
 
-/* 2. Trend */
-.trend{display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:20px;align-items:end}
-#bars{width:100%;height:170px;display:block}
-#bars text{font:400 11px var(--mono);fill:var(--ink-2)}
-.trend .note{font:400 12.5px/1.55 var(--sans);color:var(--ink-2);border-left:1px solid var(--hair);padding-left:14px}
+/* Day strip */
+.days{display:grid;grid-template-columns:repeat(14,minmax(56px,1fr));gap:0;padding:10px 6px 14px;overflow-x:auto;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.day{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 4px;border-radius:12px;min-width:56px}
+.day.today{background:var(--card-2)}
+.day .w{font-size:12.5px;color:var(--muted);font-weight:500}
+.day.today .w{color:var(--text)}
+.day svg{width:24px;height:24px}
+.day .c{font-size:16px;font-weight:600}
+.day .c.z{color:var(--dim);font-weight:400}
+.day .b{width:4px;border-radius:2px;background:var(--line);height:32px;position:relative;overflow:hidden}
+.day .b i{position:absolute;left:0;right:0;bottom:0;border-radius:2px}
 
-/* Controls */
-.controls{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-bottom:12px}
-.seg{display:inline-flex;border:1px solid var(--rule)}
-.seg button{font:600 12px var(--mono);letter-spacing:.06em;border:0;border-right:1px solid var(--rule);background:transparent;color:var(--ink);padding:6px 11px;cursor:pointer}
-.seg button:last-child{border-right:0}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--sheet)}
-.chk{display:inline-flex;align-items:center;gap:7px;font:600 12px var(--mono);letter-spacing:.06em;cursor:pointer;text-transform:uppercase}
-.chk input{appearance:none;width:14px;height:14px;border:1px solid var(--rule);background:var(--sheet);margin:0;display:grid;place-items:center;cursor:pointer}
-.chk input:checked::after{content:"×";font:700 13px/1 var(--mono);margin-top:1px}
-input[type=text],input[type=search]{font:400 13.5px var(--mono);color:var(--ink);background:var(--sheet);border:0;border-bottom:1px solid var(--rule);padding:7px 2px;width:100%;border-radius:0}
-input::placeholder{color:#8a8f95}
-input:focus{outline:none;border-bottom:2px solid var(--blue);padding-bottom:6px}
-.searchrow{display:flex;align-items:center;gap:10px;flex:1 1 240px}
-.searchrow label{font:600 11px var(--mono);letter-spacing:.1em;white-space:nowrap}
+/* Detail cards */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.tile{padding-bottom:16px;display:flex;flex-direction:column}
+.tile .v{font-size:34px;font-weight:500;letter-spacing:-.02em;padding:10px 16px 0;line-height:1.1}
+.tile .v small{font-size:15px;color:var(--muted);font-weight:400;margin-left:4px;letter-spacing:0}
+.tile .d{color:var(--muted);font-size:13px;padding:6px 16px 0;line-height:1.45}
+.gauge{margin:14px 16px 0;height:5px;border-radius:3px;background:linear-gradient(90deg,#3ccf7a,#f2c94c 45%,#f2994a 70%,#eb5757 88%,#d45ad8);position:relative}
+.gauge i{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid var(--card);transform:translate(-50%,-50%)}
 
-/* 3. Advisories table */
-.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.tbl th{font:600 10.5px var(--mono);letter-spacing:.1em;text-transform:uppercase;text-align:left;color:var(--ink-2);padding:6px 10px 6px 0;border-bottom:1px solid var(--rule);white-space:nowrap}
-.tbl td{padding:9px 10px 9px 0;border-bottom:1px solid var(--hair);vertical-align:top;font-size:13px}
-.tbl tr.row{cursor:pointer}
-.tbl tr.row:hover td{background:rgba(31,78,140,.05)}
-.tbl .vend{font-weight:700;text-transform:uppercase;letter-spacing:.02em}
-.tbl .prod{text-transform:uppercase;color:var(--ink-2)}
-.tbl .cve a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--hair);text-underline-offset:3px}
-.tbl .cve a:hover{color:var(--blue);text-decoration-color:var(--blue)}
-.tbl .due{white-space:nowrap}
-.tbl .due.soon{color:var(--magenta);font-weight:700}
-.tbl .due.past{color:#8a8f95}
-.flag{display:inline-block;font:700 10px/1 var(--mono);letter-spacing:.08em;padding:3px 5px;border:1px solid currentColor;margin:0 4px 2px 0;white-space:nowrap}
-.flag.r{color:var(--magenta)}
-.flag.m{color:var(--blue)}
-.tbl tr.desc td{padding:0 10px 12px 0;border-bottom:1px solid var(--hair);font:400 13.5px/1.55 var(--sans);color:var(--ink-2)}
-.tbl tr.desc.hidden{display:none}
-.tbl tr.row.open td{border-bottom-color:transparent}
-.count{font:400 12px var(--mono);color:var(--ink-2);margin:12px 0 0;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.btn{font:600 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);padding:7px 12px;cursor:pointer}
-.btn:hover{background:var(--ink);color:var(--sheet)}
+/* Lists */
+.main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:16px;align-items:start}
+.side{display:grid;gap:16px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:500;padding:5px 11px;border-radius:8px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--card-2);color:var(--text)}
+.fbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;font-weight:500;padding:6px 11px;border-radius:10px;cursor:pointer}
+.fbtn[aria-pressed=true]{color:var(--text);border-color:#3a3e46;background:var(--card-2)}
+.fbtn i{width:7px;height:7px;border-radius:50%}
+.search{flex:1 1 200px;position:relative}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--dim)}
+input[type=search],input[type=text]{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);font:inherit;font-size:13.5px;border-radius:10px;padding:8px 10px}
+.search input{padding-left:30px}
+input::placeholder{color:var(--dim)}
+input[type=search]:focus,input[type=text]:focus{outline:none;border-color:#3d5f8f}
+.count{padding:0 16px 8px;color:var(--dim);font-size:12px}
 
-/* Lower grid */
-.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}
-.lower > .col{border-right:1px solid var(--rule)}
-.lower > .col:last-child{border-right:0}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-.chip{display:inline-flex;align-items:center;gap:6px;font:600 12px var(--mono);text-transform:uppercase;border:1px solid var(--blue);color:var(--blue);padding:3px 4px 3px 8px}
-.chip button{border:0;background:transparent;color:inherit;font:700 13px/1 var(--mono);cursor:pointer;padding:0 3px}
-.addrow{display:flex;gap:10px;align-items:flex-end}
-.small{font:400 12px/1.5 var(--sans);color:var(--ink-2);margin-top:8px}
-.local{margin-top:14px;border:1px solid var(--rule)}
-.local .row1{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:8px 10px;border-bottom:1px solid var(--hair)}
-.local .row1 strong{font:800 15px var(--sans);text-transform:uppercase;letter-spacing:.03em}
-.local dl{margin:0;display:grid;grid-template-columns:auto 1fr;font-size:12.5px}
-.local dt,.local dd{margin:0;padding:6px 10px;border-bottom:1px solid var(--hair)}
-.local dt{font-weight:600;color:var(--ink-2);font-size:11px;letter-spacing:.08em;padding-top:8px}
-.local dl > :nth-last-child(-n+2){border-bottom:0}
+.list{border-top:1px solid var(--line)}
+.item{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:4px 12px;padding:12px 16px;border-bottom:1px solid var(--line);cursor:pointer;align-items:center}
+.item:hover{background:#181a1f}
+.item:last-child{border-bottom:0}
+.av{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:600;font-size:14px;color:#fff;grid-row:1/3;align-self:start}
+.item .t{grid-column:2;grid-row:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .s{grid-column:2;grid-row:2;color:var(--muted);font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.item .s .cve{font-family:var(--mono);font-size:12px}
+.item .due{grid-column:3;grid-row:1/3;text-align:right;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.item .due b{display:block;color:var(--text);font-weight:500;font-size:13px}
+.item .due.soon b{color:var(--orange)}
+.item .due.past b{color:var(--dim)}
+.tag{font-size:11px;font-weight:600;border-radius:6px;padding:1px 6px}
+.tag.r{color:var(--red);background:rgba(235,87,87,.12)}
+.tag.m{color:var(--blue);background:rgba(76,157,255,.12)}
+.item .x{grid-column:2/4;grid-row:3;color:#c3c6cc;font-size:13.5px;line-height:1.55;display:none;padding-top:6px}
+.item.open .x{display:block}
+.item .x a{font-size:12.5px;display:inline-block;margin-top:6px}
+.more{display:block;margin:12px auto 14px;border:1px solid var(--line);background:transparent;border-radius:10px;padding:7px 14px;color:var(--text);font-size:13px;font-weight:500;cursor:pointer}
+.more:hover{background:var(--card-2)}
 
-.front{display:grid;grid-template-columns:minmax(0,9em) 1fr 2.2em;gap:10px;align-items:center;padding:5px 0;font-size:12.5px;border-bottom:1px dotted var(--hair)}
-.front .name{text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.front .bar{height:7px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px)}
-.front .n{text-align:right;font-weight:700}
+.pad{padding:12px 16px 16px}
+.stack-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.sc{display:inline-flex;align-items:center;gap:4px;background:var(--card-2);border-radius:8px;padding:4px 4px 4px 10px;font-size:13px}
+.sc button{border:0;background:transparent;color:var(--dim);cursor:pointer;width:22px;height:22px;border-radius:6px;font-size:15px;line-height:1}
+.sc button:hover{color:var(--text);background:#262a31}
+.addrow{display:flex;gap:8px}
+.btn{border:0;background:var(--text);color:#0c0d10;font-weight:600;font-size:13px;border-radius:10px;padding:0 14px;cursor:pointer}
+.btn:hover{background:#fff}
+.hint{color:var(--dim);font-size:12px;margin-top:8px}
+.local{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:12px;overflow:hidden}
+.local > div{background:var(--card-2);padding:10px 12px}
+.local .full{grid-column:1/-1}
+.local .k{color:var(--muted);font-size:12px}
+.local .v{font-size:15px;font-weight:600;margin-top:2px}
+.local .v small{font-weight:400;color:var(--muted);font-size:12.5px}
 
-.key{width:100%;border-collapse:collapse;font-size:12.5px}
-.key td{padding:7px 8px 7px 0;border-bottom:1px solid var(--hair);vertical-align:top}
-.key td:first-child{width:22px}
-.key tr.now td{background:rgba(163,25,91,.06)}
-.key b{text-transform:uppercase;letter-spacing:.03em}
-.box{display:inline-block;width:12px;height:12px;border:1px solid var(--ink);margin-top:3px}
+.front{display:grid;grid-template-columns:minmax(0,7.5em) 1fr 1.8em;gap:10px;align-items:center;font-size:13px;padding:6px 0}
+.front .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cfd2d8}
+.front .b{height:6px;border-radius:3px;background:var(--card-2);overflow:hidden}
+.front .b i{display:block;height:100%;border-radius:3px;background:var(--blue)}
+.front .c{text-align:right;color:var(--muted)}
 
-footer{margin-top:18px;font:400 12px/1.6 var(--sans);color:var(--ink-2);display:flex;justify-content:space-between;gap:8px 24px;flex-wrap:wrap}
-footer p{margin:0;max-width:80ch}
+.key{display:grid;gap:10px}
+.key div{display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:13px;color:var(--muted);line-height:1.45}
+.key svg{width:22px;height:22px}
+.key b{color:var(--text);font-weight:600}
+.key .on b::after{content:" · now";color:var(--lvl)}
 
-@media (max-width:900px){
-  .head{grid-template-columns:1fr auto}
-  .head .fields{grid-column:1/-1;grid-row:2;border-right:0;border-top:1px solid var(--rule);grid-template-columns:repeat(2,minmax(0,1fr))}
-  .head .fields .field:nth-child(2){border-right:0}
-  .head .fields .field:nth-child(-n+2){border-bottom:1px solid var(--hair)}
-  .head .mark{border-right:0}
-  .cond,.lower,.trend{grid-template-columns:1fr}
-  .cond > div:first-child{border-right:0;border-bottom:1px solid var(--rule)}
-  .scope{max-width:460px;width:100%;justify-self:center}
-  .lower > .col{border-right:0;border-bottom:1px solid var(--rule)}
-  .lower > .col:last-child{border-bottom:0}
-  .trend .note{border-left:0;padding-left:0;border-top:1px solid var(--hair);padding-top:10px}
+footer{color:var(--dim);font-size:12px;line-height:1.6;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 24px;padding-top:8px}
+footer p{max-width:80ch}
+
+@media (max-width:1000px){
+  .hero,.main{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .radar-stage{min-height:0;aspect-ratio:1/1;max-height:640px}
 }
-@media (max-width:640px){
-  .page{padding:12px 10px 40px}
-  .sheet{box-shadow:none}
-  .sec-b{padding:14px}
-  .sec-h{padding:10px 14px}
-  .tbl thead{display:none}
-  .tbl tr.row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--hair)}
-  .tbl tr.row td{border:0;padding:0}
-  .tbl tr.row td.added{grid-column:1;grid-row:1;color:var(--ink-2);font-size:11.5px}
-  .tbl tr.row td.vp{grid-column:1/-1;grid-row:2}
-  .tbl tr.row td.cve{grid-column:1;grid-row:3;font-size:12px}
-  .tbl tr.row td.due{grid-column:2;grid-row:1;text-align:right;font-size:12px}
-  .tbl tr.row td.fl{grid-column:2;grid-row:3;text-align:right}
-  .tbl tr.desc{display:block}
-  .tbl tr.desc td{display:block;padding:0 0 12px}
-  .tbl tr.desc.hidden{display:none}
+@media (max-width:620px){
+  .tabs{display:none}
+  .wrap{padding:12px 12px 40px;gap:12px}
+  .bar-in{padding:0 14px}
+  .tiles{gap:12px}
+  .tile .v{font-size:28px}
+  .scale{display:none}
+  .now .big .n{font-size:64px}
+  .item{grid-template-columns:32px minmax(0,1fr) auto}
+  .av{width:32px;height:32px;font-size:13px}
 }
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<div class="page">
-<article class="sheet">
+<header class="bar">
+  <div class="bar-in">
+    <div class="logo"><img src="/icons/icon-192.png" alt="">Cyber Weather</div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#top" class="on">Overview</a>
+      <a href="#advisories">Advisories</a>
+      <a href="#stack">My stack</a>
+    </nav>
+    <div class="updated off" id="updated"><span class="d"></span><span id="updatedText">Connecting…</span></div>
+  </div>
+</header>
 
-  <header class="head">
-    <div class="mark">
-      <svg viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15.5" stroke="#14171a"/><circle cx="17" cy="17" r="9" stroke="#14171a" stroke-dasharray="2 2"/><path d="M17 1.5V32.5M1.5 17H32.5" stroke="#14171a" stroke-width=".75"/><path d="M17 17 L27.5 6.5" stroke="#a3195b" stroke-width="1.5"/><circle cx="24" cy="10" r="2" fill="#a3195b"/></svg>
-      <h1>Cyber WX Briefing<small>Exploited-vulnerability conditions</small></h1>
-    </div>
-    <div class="fields">
-      <div class="field"><span class="k">Issued</span><span class="v" id="fIssued">——</span></div>
-      <div class="field"><span class="k">Observed</span><span class="v" id="fObs">——</span></div>
-      <div class="field"><span class="k">Source</span><span class="v" id="fSrc">CISA KEV</span></div>
-      <div class="field"><span class="k">Catalog</span><span class="v" id="fTotal">——</span></div>
-    </div>
-    <div class="stamp"><div class="stampbox" id="stamp">Loading</div></div>
-  </header>
-
-  <!-- 1 -->
-  <section class="sec">
-    <div class="sec-h"><span class="n">01</span><h2>Current conditions</h2><span class="aside" id="condAside"></span></div>
-    <div class="cond">
-      <div class="sec-b">
-        <div class="coded" id="coded" aria-label="Coded report">KEV ——————Z ……</div>
-        <div class="level" id="level">Reading…</div>
-        <p class="summary" id="summary">Fetching the latest CISA catalog.</p>
-        <table class="decode" id="decode"></table>
-        <div class="remarks" id="remarks"></div>
-      </div>
-      <div class="scope">
-        <div class="k">Scope · last 30 days · center = newest</div>
-        <canvas id="radar" width="620" height="620" aria-label="Plot of vulnerabilities added in the last 30 days, newest at the center"></canvas>
-        <div class="legend">
-          <span><i class="sw" style="background:#14171a"></i>Exploited</span>
-          <span><i class="sw" style="background:#a3195b"></i>Ransomware</span>
-          <span><i class="sw" style="border:1.5px solid #1f4e8c;width:10px;height:10px"></i>Your stack</span>
+<main class="wrap" id="top">
+  <section class="hero">
+    <div class="card radar-card">
+      <div class="radar-stage" id="stage">
+        <canvas id="radar" aria-label="Radar of exploited vulnerabilities over the past 30 days. Today is at the center."></canvas>
+        <div class="radar-top">
+          <span class="chip">Threat radar</span>
+          <span class="chip" id="radarDate">Today</span>
         </div>
+        <div class="tip" id="tip"></div>
+      </div>
+      <div class="radar-ctl">
+        <button class="play" id="play" type="button" aria-label="Play the last 30 days"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg></button>
+        <div class="scrub">
+          <input type="range" id="scrub" min="0" max="29" step="1" value="29" aria-label="Radar date">
+          <div class="scrub-l"><span id="scrubFrom">30 days ago</span><b id="scrubNow">Today</b></div>
+        </div>
+        <div class="scale"><i></i><span><span>Light</span><span>Heavy</span></span></div>
       </div>
     </div>
-  </section>
 
-  <!-- 2 -->
-  <section class="sec">
-    <div class="sec-h"><span class="n">02</span><h2>14-day record</h2><span class="aside" id="yearStat"></span></div>
-    <div class="sec-b trend">
-      <svg id="bars" role="img" aria-label="Daily count of newly exploited vulnerabilities over the last 14 days"></svg>
-      <div class="note">Bars count vulnerabilities CISA confirmed as actively exploited, by the day they were added. The dashed line is this year's daily average.</div>
+    <div class="card now">
+      <div class="where"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2 2 2 10.4 0 12.4M8 1.8c-2 2-2 10.4 0 12.4"/></svg>Global · CISA KEV catalog</div>
+      <div class="big"><span class="n num" id="bigN">–</span><span class="u">newly exploited<br>this week</span></div>
+      <div class="cond"><span id="condIcon"></span><h1 id="level">Loading</h1></div>
+      <p class="sum" id="summary">Fetching the latest catalog…</p>
+      <span class="level-pill" id="pill" hidden></span>
+      <div class="advice"><p id="advice"></p></div>
     </div>
   </section>
 
-  <!-- 3 -->
-  <section class="sec">
-    <div class="sec-h"><span class="n">03</span><h2>Active advisories</h2><span class="aside">Select a row for details</span></div>
-    <div class="sec-b">
-      <div class="controls">
+  <section class="card">
+    <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>14-day history<span class="r" id="avg"></span></div>
+    <div class="days" id="days"></div>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <div class="main">
+    <section class="card" id="advisories">
+      <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 14 4v4c0 3.3-2.6 5.8-6 6.5C4.6 13.8 2 11.3 2 8V4z"/><path d="M8 5v3.5M8 10.8v.2" stroke-linecap="round"/></svg>Active advisories<span class="r">Tap an advisory for details</span></div>
+      <div class="toolbar">
         <div class="seg" role="group" aria-label="Time range">
-          <button type="button" data-range="7" aria-pressed="false">7D</button>
-          <button type="button" data-range="30" aria-pressed="true">30D</button>
-          <button type="button" data-range="90" aria-pressed="false">90D</button>
+          <button type="button" data-range="7" aria-pressed="false">7 days</button>
+          <button type="button" data-range="30" aria-pressed="true">30 days</button>
+          <button type="button" data-range="90" aria-pressed="false">90 days</button>
         </div>
-        <label class="chk" for="onlyMine"><input type="checkbox" id="onlyMine">My stack</label>
-        <label class="chk" for="onlyRansom"><input type="checkbox" id="onlyRansom">Ransomware</label>
-        <div class="searchrow"><label for="search">FIND</label><input type="search" id="search" placeholder="vendor, product or CVE"></div>
+        <button class="fbtn" type="button" id="fMine" aria-pressed="false"><i style="background:var(--blue)"></i>My stack</button>
+        <button class="fbtn" type="button" id="fRansom" aria-pressed="false"><i style="background:var(--red)"></i>Ransomware</button>
+        <div class="search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.8"/><path d="m10.6 10.6 3.4 3.4" stroke-linecap="round"/></svg><input type="search" id="search" placeholder="Search vendor, product or CVE" aria-label="Search advisories"></div>
       </div>
-      <div style="overflow-x:auto">
-        <table class="tbl">
-          <thead><tr><th>Added</th><th>Vendor / product</th><th>CVE</th><th>Patch by</th><th>Flags</th></tr></thead>
-          <tbody id="alerts"></tbody>
-        </table>
-      </div>
-      <div class="count"><span id="count"></span><span id="moreWrap"></span></div>
-    </div>
-  </section>
+      <div class="count" id="count"></div>
+      <div class="list" id="list"></div>
+      <div id="moreWrap"></div>
+    </section>
 
-  <!-- 4–6 -->
-  <section class="sec lower">
-    <div class="col">
-      <div class="sec-h"><span class="n">04</span><h2>Your stations</h2></div>
-      <div class="sec-b">
-        <div class="chips" id="chips"></div>
-        <form class="addrow" id="addForm">
-          <input type="text" id="addInput" placeholder="add vendor or product" aria-label="Add a vendor or product">
-          <button class="btn" type="submit">Add</button>
-        </form>
-        <div class="small" id="exampleNote"></div>
-        <div class="local" id="local"></div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="sec-h"><span class="n">05</span><h2>Fronts</h2><span class="aside">90 days</span></div>
-      <div class="sec-b">
-        <div class="small" style="margin:0 0 8px">Vendors with the most newly exploited vulnerabilities.</div>
-        <div id="fronts"></div>
-      </div>
-    </div>
-    <div class="col">
-      <div class="sec-h"><span class="n">06</span><h2>Key</h2></div>
-      <div class="sec-b">
-        <div class="small" style="margin:0 0 8px">This week is ranked against every 7-day stretch of the past year. Two or more ransomware-linked additions raise the level one step.</div>
-        <table class="key" id="scale"></table>
-      </div>
-    </div>
-  </section>
-</article>
+    <div class="side">
+      <section class="card" id="stack">
+        <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.8 14.2 5 8 8.2 1.8 5z"/><path d="m1.8 8 6.2 3.2L14.2 8M1.8 11l6.2 3.2 6.2-3.2"/></svg>My stack</div>
+        <div class="pad">
+          <div class="stack-chips" id="chips"></div>
+          <form class="addrow" id="addForm">
+            <input type="text" id="addInput" placeholder="Add a vendor or product" aria-label="Add a vendor or product">
+            <button class="btn" type="submit">Add</button>
+          </form>
+          <p class="hint" id="exampleNote"></p>
+          <div class="local" id="local"></div>
+        </div>
+      </section>
 
-<footer id="footer"></footer>
-</div>
+      <section class="card">
+        <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13.5h12M4 11V7M8 11V3.5M12 11V6"/></svg>Most targeted vendors<span class="r">90 days</span></div>
+        <div class="pad" id="fronts"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 4.8v.2" stroke-linecap="round"/></svg>How the forecast works</div>
+        <div class="pad">
+          <p class="hint" style="margin:0 0 12px">This week's count is ranked against every 7-day stretch of the past year. Two or more ransomware-linked additions raise the level one step.</p>
+          <div class="key" id="key"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer id="footer"></footer>
+</main>
 
 <script src="/forecast.js"></script>
 <script>
@@ -310,193 +322,291 @@ footer p{margin:0;max-width:80ch}
 const CF = window.CyberForecast, DAY = CF.DAY;
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const MON = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-const dmon = s => { const d = new Date(CF.dayIndex(s)*DAY); return String(d.getUTCDate()).padStart(2,"0") + MON[d.getUTCMonth()]; };
-const zulu = iso => { const d = new Date(iso); return String(d.getUTCDate()).padStart(2,"0") + MON[d.getUTCMonth()] + " " + String(d.getUTCHours()).padStart(2,"0") + String(d.getUTCMinutes()).padStart(2,"0") + "Z"; };
-const LVCOL = {"--clear":"#1f4e8c","--cloudy":"#4a5057","--watch":"#9a6500","--warn":"#a3195b"};
-const CODE = {clear:"CLR", cloudy:"ADVY", watch:"WTCH", warn:"WRNG"};
+const fmt = (s, o={month:"short",day:"numeric"}) => new Date(CF.dayIndex(s)*DAY).toLocaleDateString("en-US",{...o,timeZone:"UTC"});
+const LV = {"--clear":"#4c9dff","--cloudy":"#a0a6b0","--watch":"#f2c94c","--warn":"#eb5757"};
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* Weather icons: clear / cloudy / rain / storm */
+const ICON = {
+  clear:`<svg viewBox="0 0 24 24" fill="none" stroke="#f2c94c" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>`,
+  cloudy:`<svg viewBox="0 0 24 24" fill="none" stroke="#b9bec7" stroke-width="1.7" stroke-linejoin="round"><path d="M7 18h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18z"/></svg>`,
+  rain:`<svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9bec7" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="#4c9dff" d="M8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/></svg>`,
+  storm:`<svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9bec7" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="#f2c94c" d="M12.5 15.5l-2 3.5h3l-2 3.5"/></svg>`,
+  severe:`<svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9bec7" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="#eb5757" d="M12.5 15.5l-2 3.5h3l-2 3.5"/><path stroke="#4c9dff" d="M7.5 18l-1 2.5M17.5 18l-1 2.5"/></svg>`
+};
+const LEVEL_ICON = {clear:"clear", cloudy:"cloudy", watch:"storm", warn:"severe"};
+const dayIcon = (n, r) => r ? "severe" : n >= 5 ? "storm" : n >= 3 ? "rain" : n >= 1 ? "cloudy" : "clear";
 
 fetch("/api/kev")
   .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
   .then(start)
   .catch(err => {
-    $("level").textContent = "No report";
-    $("stamp").textContent = "Offline";
-    $("summary").textContent = "Couldn't load the briefing. Check your connection, then refresh. (" + err.message + ")";
+    $("level").textContent = "No connection";
+    $("summary").textContent = "Couldn't load the forecast. Check your connection and refresh. (" + err.message + ")";
+    $("updatedText").textContent = "Offline";
   });
 
 function start(DATA){
 const F = CF.compute(DATA.v, DATA.released);
-const V = F.vulns, L = F.level, lc = LVCOL[L.color];
+const V = F.vulns, L = F.level, lc = LV[L.color];
 document.documentElement.style.setProperty("--lvl", lc);
 
 /* stack */
-const EXAMPLE = ["Microsoft", "Cisco", "Fortinet", "Google Chrome"];
+const EXAMPLE = ["Microsoft","Cisco","Fortinet","Google Chrome"];
 let stack, isExample = false;
 try { stack = JSON.parse(localStorage.getItem("cw-stack")); } catch(e) {}
 if (!Array.isArray(stack)) { stack = EXAMPLE.slice(); isExample = true; }
 const saveStack = () => { isExample = false; try { localStorage.setItem("cw-stack", JSON.stringify(stack)); } catch(e) {} };
 const mine = x => CF.matchesStack(x, stack);
 
-/* header */
-$("fIssued").textContent = DATA.fetchedAt ? zulu(DATA.fetchedAt) : "SNAPSHOT";
-$("fObs").textContent = dmon(DATA.released) + " " + DATA.released.slice(0,4);
-$("fSrc").textContent = "KEV " + DATA.version;
-$("fTotal").textContent = DATA.total.toLocaleString() + " ENTRIES";
-$("stamp").innerHTML = esc(L.alert) + (F.raisedForRansomware ? "<br><small style='font-size:10px'>Raised: ransomware</small>" : "");
+/* app bar */
+if (DATA.fetchedAt) {
+  $("updated").classList.remove("off");
+  $("updatedText").textContent = "Updated " + new Date(DATA.fetchedAt).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+} else $("updatedText").textContent = "Offline copy";
 
-/* conditions */
+/* now */
 const c7 = F.newLast7Days, r7 = F.ransomwareLast7Days;
-const top = F.topVendorsLast7Days.map(t => t.vendor.split(/\s+/)[0].toUpperCase().replace(/[^A-Z0-9]+/g,"").slice(0,7));
-const issued = DATA.fetchedAt ? zulu(DATA.fetchedAt).replace(/[A-Z]{3} /, "") : "SNAP";
-$("coded").innerHTML =
-  `KEV ${issued} ${String(c7).padStart(2,"0")}NEW/7D P${String(F.percentileVsPastYear).padStart(2,"0")} ` +
-  `<span class="${r7?"hz":""}">RNS${String(r7).padStart(2,"0")}</span> DUE${String(F.deadlinesNext14Days).padStart(2,"0")}/14D ` +
-  (top.length ? top.join(" ") + " " : "") + `<span class="${L.index>=2?"hz":""}">${CODE[L.key]}</span>`;
-$("level").innerHTML = `<span class="lv">${esc(L.name)}</span>`;
-$("condAside").textContent = L.alert.toUpperCase();
-$("summary").textContent =
-  `${c7} newly exploited ${c7===1?"vulnerability":"vulnerabilities"} in the past 7 days, more than in ${F.percentileVsPastYear}% of weeks this year.` +
-  (r7 ? ` ${r7} ${r7===1?"is":"are"} linked to ransomware.` : " None linked to ransomware so far.");
+$("bigN").textContent = c7;
+$("condIcon").innerHTML = ICON[LEVEL_ICON[L.key]];
+$("level").textContent = L.name;
+$("summary").textContent = `Busier than ${F.percentileVsPastYear}% of weeks this year. ` +
+  (r7 ? `${r7} linked to ransomware.` : "None linked to ransomware.") +
+  (F.topVendorsLast7Days.length ? ` Most activity: ${F.topVendorsLast7Days.slice(0,2).map(t=>t.vendor).join(" and ")}.` : "");
+$("pill").hidden = false;
+$("pill").textContent = L.alert + (F.raisedForRansomware ? " · raised for ransomware" : "");
+$("advice").innerHTML = `<b>What to do.</b> ${esc(L.advice)}`;
 
-function renderDecode(){
+/* day strip */
+$("avg").textContent = `Avg ${F.dailyAverage.toFixed(1)} per day`;
+const rByDay = new Map(); V.forEach(x => { if (x.r) rByDay.set(x.ago, (rByDay.get(x.ago)||0)+1); });
+const dmax = Math.max(3, ...F.last14Days.map(d => d.count));
+$("days").innerHTML = F.last14Days.map(d => {
+  const w = d.ago === 0 ? "Latest" : new Date(CF.dayIndex(d.date)*DAY).toLocaleDateString("en-US",{weekday:"short",timeZone:"UTC"});
+  const r = rByDay.get(d.ago)||0, col = r ? "var(--red)" : d.count >= 5 ? "var(--orange)" : d.count >= 3 ? "var(--yellow)" : "var(--green)";
+  return `<div class="day${d.ago===0?" today":""}" title="${fmt(d.date)}: ${d.count} added${r?`, ${r} ransomware`:""}">
+    <span class="w">${w}</span>${ICON[dayIcon(d.count, r)]}
+    <span class="b"><i style="height:${d.count/dmax*100}%;background:${col}"></i></span>
+    <span class="c num${d.count?"":" z"}">${d.count}</span></div>`;
+}).join("");
+$("days").scrollLeft = 9999;
+
+/* tiles */
+function renderTiles(){
   const m7 = V.filter(x => x.ago < 7 && mine(x)).length;
-  $("decode").innerHTML = [
-    ["PRESSURE", c7, `new in 7 days · ${F.percentileVsPastYear}th percentile for the year`],
-    ["RANSOMWARE", r7, "ransomware-linked additions in 7 days"],
-    ["DEADLINES", F.deadlinesNext14Days, "patch-by dates falling in the next 14 days"],
-    ["YOUR STACK", m7, "additions in 7 days matching your stations"],
-    ["ACTIVITY", "", F.topVendorsLast7Days.map(t => `${esc(t.vendor)} ${t.count}`).join(", ") || "none"]
-  ].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
-}
-$("remarks").innerHTML = `<b>RMK</b>${esc(L.advice)}`;
-
-/* 14-day bars */
-$("yearStat").textContent = `${F.addedPastYear} in past year · avg ${F.dailyAverage.toFixed(1)}/day`;
-function drawBars(){
-  const svg = $("bars");
-  const W = svg.clientWidth || 700, H = 170, padL = 22, padB = 24, padT = 18;
-  const days = F.last14Days, max = Math.max(4, ...days.map(d => d.count));
-  const ticks = max <= 6 ? [0,2,4,6].filter(t => t <= max) : [0, Math.round(max/2), max];
-  const y = n => padT + (H-padT-padB) * (1 - n/max);
-  const bw = (W - padL) / days.length;
-  let s = `<defs><pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="4" fill="#a3195b"/></pattern></defs>`;
-  ticks.forEach(t => { s += `<line x1="${padL}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="${t===0?"#14171a":"#c6cac2"}" stroke-width="1"/><text x="${padL-6}" y="${y(t)+4}" text-anchor="end">${t}</text>`; });
-  days.forEach((d,i) => {
-    const w = Math.min(26, bw*.5), x = padL + i*bw + (bw-w)/2;
-    if (d.count) {
-      s += `<rect x="${x}" y="${y(d.count)}" width="${w}" height="${y(0)-y(d.count)}" fill="${d.ago===0?"url(#hatch)":"#14171a"}" stroke="${d.ago===0?"#a3195b":"none"}"><title>${d.count} added</title></rect>`;
-      s += `<text x="${x+w/2}" y="${y(d.count)-5}" text-anchor="middle" style="fill:#14171a;font-weight:700">${d.count}</text>`;
-    }
-    if (i % (W < 520 ? 2 : 1) === 0 || d.ago === 0)
-      s += `<text x="${x+w/2}" y="${H-6}" text-anchor="middle" style="${d.ago===0?"fill:#a3195b;font-weight:700":""}">${dmon(d.date).slice(0,2)}</text>`;
-  });
-  s += `<line x1="${padL}" x2="${W}" y1="${y(F.dailyAverage)}" y2="${y(F.dailyAverage)}" stroke="#1f4e8c" stroke-dasharray="5 4" stroke-width="1.2"/>`;
-  s += `<text x="${padL+4}" y="${y(F.dailyAverage)-5}" text-anchor="start" style="fill:#1f4e8c">AVG ${F.dailyAverage.toFixed(1)}</text>`;
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.innerHTML = s;
+  const p = F.percentileVsPastYear;
+  const ico = {
+    p:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 11a5.5 5.5 0 1 1 11 0"/><path d="M8 11l2.6-3.4" stroke-linecap="round"/></svg>`,
+    r:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>`,
+    d:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8.5" r="5.5"/><path d="M8 5.5v3l2 1.5M6 1.5h4" stroke-linecap="round"/></svg>`,
+    s:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.8 14.2 5 8 8.2 1.8 5z"/><path d="m1.8 8 6.2 3.2L14.2 8"/></svg>`
+  };
+  $("tiles").innerHTML = `
+    <div class="card tile"><div class="card-h">${ico.p}Exploit pressure</div><div class="v num">${p}<small>th percentile</small></div><div class="gauge"><i style="left:${p}%"></i></div><div class="d">This week vs. every week in the past year.</div></div>
+    <div class="card tile"><div class="card-h">${ico.r}Ransomware</div><div class="v num">${r7}</div><div class="d">${r7 ? `${r7===1?"Addition":"Additions"} this week tied to ransomware campaigns.` : "No additions this week are tied to known ransomware campaigns."}</div></div>
+    <div class="card tile"><div class="card-h">${ico.d}Patch deadlines</div><div class="v num">${F.deadlinesNext14Days}</div><div class="d">CISA patch-by dates falling in the next 14 days.</div></div>
+    <div class="card tile"><div class="card-h">${ico.s}Your stack</div><div class="v num">${m7}</div><div class="d">${m7 ? `New this week matching ${m7===1?"a product":"products"} you run.` : "Nothing new this week matches what you run."}</div></div>`;
 }
 
-/* scope (static, chart-like) */
-const canvas = $("radar"), ctx = canvas.getContext("2d");
+/* ---------- radar ---------- */
+const stage = $("stage"), cv = $("radar"), ctx = cv.getContext("2d");
 const hash = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h>>>0) / 4294967296; };
-const blips = V.filter(x => x.ago < 30).map(x => ({x, ang: hash(x.v) * Math.PI*2 + (hash(x.c)-.5)*.35, rad: (x.ago + .5 + hash(x.c+"r")*.6) / 30}));
-function drawScope(){
-  const S = canvas.width, c = S/2, R = c - 40;
-  ctx.clearRect(0,0,S,S);
-  ctx.strokeStyle = "#14171a"; ctx.lineWidth = 1.2;
-  ctx.beginPath(); ctx.arc(c,c,R,0,Math.PI*2); ctx.stroke();
-  ctx.lineWidth = 1; ctx.strokeStyle = "#9da29b"; ctx.setLineDash([3,4]);
-  [7,14].forEach(d => { ctx.beginPath(); ctx.arc(c,c,R*d/30,0,Math.PI*2); ctx.stroke(); });
-  ctx.setLineDash([]); ctx.strokeStyle = "#c6cac2";
-  ctx.beginPath(); ctx.moveTo(c-R,c); ctx.lineTo(c+R,c); ctx.moveTo(c,c-R); ctx.lineTo(c,c+R); ctx.stroke();
-  // compass-rose ticks every 10°, labels every 30°
-  ctx.strokeStyle = "#14171a"; ctx.fillStyle = "#4a5057"; ctx.font = "600 15px 'Overpass Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  for (let deg = 0; deg < 360; deg += 5) {
-    const a = (deg - 90) * Math.PI/180, l = deg % 30 === 0 ? 12 : deg % 10 === 0 ? 7 : 3.5;
-    ctx.beginPath(); ctx.moveTo(c+Math.cos(a)*R, c+Math.sin(a)*R); ctx.lineTo(c+Math.cos(a)*(R-l), c+Math.sin(a)*(R-l)); ctx.stroke();
-    if (deg % 30 === 0) ctx.fillText(String(deg/10).padStart(2,"0"), c+Math.cos(a)*(R+20), c+Math.sin(a)*(R+20));
-  }
-  ctx.textAlign = "left"; ctx.font = "600 14px 'Overpass Mono', monospace"; ctx.fillStyle = "#4a5057";
-  [7,14,30].forEach(d => ctx.fillText(d+"D", c + 6, c - R*d/30 + 13));
-  blips.forEach(b => {
-    const px = c + Math.cos(b.ang)*b.rad*R, py = c + Math.sin(b.ang)*b.rad*R;
-    if (b.x.r) { ctx.fillStyle = "#a3195b"; ctx.beginPath(); ctx.moveTo(px,py-7); ctx.lineTo(px+6.5,py+5); ctx.lineTo(px-6.5,py+5); ctx.closePath(); ctx.fill(); }
-    else { ctx.fillStyle = "#14171a"; ctx.beginPath(); ctx.arc(px,py,4.2,0,Math.PI*2); ctx.fill(); }
-    if (mine(b.x)) { ctx.strokeStyle = "#1f4e8c"; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(px,py,10,0,Math.PI*2); ctx.stroke(); }
-  });
-  ctx.fillStyle = "#14171a"; ctx.fillRect(c-3,c-3,6,6);
-}
+const POOL = V.filter(x => x.ago < 60).map(x => ({ x, ang: hash(x.v)*Math.PI*2 + (hash(x.c)-.5)*.5, j: hash(x.c+"r"), w: x.r ? 1.7 : 1 }));
+// radar palette LUT (NEXRAD-like, tuned for a dark base)
+const STOPS = [[0,[0,0,0,0]],[.10,[29,122,85,90]],[.22,[60,207,122,170]],[.42,[242,201,76,210]],[.6,[242,153,74,230]],[.78,[235,87,87,240]],[1,[212,90,216,250]]];
+const LUT = new Uint8ClampedArray(256*4);
+for (let i = 0; i < 256; i++) { const t = i/255; let k = 0; while (k < STOPS.length-2 && t > STOPS[k+1][0]) k++;
+  const [t0,a] = STOPS[k], [t1,b] = STOPS[k+1], f = Math.min(1, Math.max(0, (t-t0)/(t1-t0)));
+  for (let c = 0; c < 4; c++) LUT[i*4+c] = a[c] + (b[c]-a[c])*f; }
+const HN = 260, heat = document.createElement("canvas"); heat.width = heat.height = HN;
+const hctx = heat.getContext("2d", { willReadFrequently: true });
+const paint = document.createElement("canvas"); paint.width = paint.height = HN;
+const pctx = paint.getContext("2d");
+// soft blob sprite
+const SPR = 64, spr = document.createElement("canvas"); spr.width = spr.height = SPR;
+{ const g = spr.getContext("2d"), rg = g.createRadialGradient(SPR/2,SPR/2,0,SPR/2,SPR/2,SPR/2);
+  rg.addColorStop(0,"rgba(255,255,255,.55)"); rg.addColorStop(.45,"rgba(255,255,255,.22)"); rg.addColorStop(1,"rgba(255,255,255,0)");
+  g.fillStyle = rg; g.fillRect(0,0,SPR,SPR); }
 
-/* stations */
+let endAgo = 0, W = 0, H = 0, dpr = 1, cx = 0, cy = 0, R = 0, placed = [];
+function size(){
+  dpr = Math.min(2, devicePixelRatio || 1);
+  W = stage.clientWidth; H = stage.clientHeight;
+  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+  cx = W/2; cy = H/2 + 10; R = Math.min(W, H)/2 - 34;
+  draw();
+}
+function cells(e){ // cells inside the 30-day window ending e days ago
+  return POOL.filter(b => b.x.ago >= e && b.x.ago < e + 30).map(b => {
+    const rad = (b.x.ago - e + .35 + b.j*.6) / 32;
+    return { b, px: Math.cos(b.ang)*rad, py: Math.sin(b.ang)*rad };
+  });
+}
+function draw(){
+  const e = endAgo, list = cells(e);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  // base map: faint grid
+  ctx.fillStyle = "#0a0b0d"; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = "rgba(255,255,255,.035)"; ctx.lineWidth = 1;
+  for (let x = cx % 40; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = cy % 40; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  // heat field
+  hctx.globalCompositeOperation = "source-over"; hctx.clearRect(0,0,HN,HN);
+  hctx.globalCompositeOperation = "lighter";
+  const hs = HN/2 - 2;
+  list.forEach(({b,px,py}) => {
+    const s = (b.x.r ? 54 : 44) * (HN/260);
+    for (let k = 0; k < 3; k++) { // three offset puffs per cell for an organic shape
+      const ox = (hash(b.x.c+k)-.5)*s*.55, oy = (hash(b.x.c+"y"+k)-.5)*s*.55;
+      hctx.globalAlpha = b.w * (k ? .26 : .42);
+      hctx.drawImage(spr, HN/2 + px*hs + ox - s/2, HN/2 + py*hs + oy - s/2, s, s);
+    }
+  });
+  hctx.globalAlpha = 1;
+  const img = hctx.getImageData(0,0,HN,HN), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const v = Math.min(255, d[i+3] * 1.15) | 0; const o = v*4; d[i]=LUT[o]; d[i+1]=LUT[o+1]; d[i+2]=LUT[o+2]; d[i+3]=LUT[o+3]; }
+  pctx.putImageData(img,0,0);
+  ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(paint, cx - R*(HN/2)/hs, cy - R*(HN/2)/hs, R*HN/hs, R*HN/hs);
+  ctx.restore();
+  // range rings + bearings
+  ctx.strokeStyle = "rgba(255,255,255,.10)"; ctx.lineWidth = 1;
+  [10,20,30].forEach(dd => { ctx.beginPath(); ctx.arc(cx,cy,R*dd/30,0,Math.PI*2); ctx.stroke(); });
+  ctx.strokeStyle = "rgba(255,255,255,.05)";
+  for (let a = 0; a < 12; a++) { const t = a/12*Math.PI*2; ctx.beginPath(); ctx.moveTo(cx+Math.cos(t)*R*.06, cy+Math.sin(t)*R*.06); ctx.lineTo(cx+Math.cos(t)*R, cy+Math.sin(t)*R); ctx.stroke(); }
+  ctx.font = `500 11px ${getComputedStyle(document.body).fontFamily}`; ctx.fillStyle = "rgba(255,255,255,.38)"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  [10,20,30].forEach(dd => ctx.fillText(dd + "d", cx + 5, cy - R*dd/30 - 4));
+  // vendor labels, like city names on a map
+  const groups = {};
+  list.forEach(c => { const k = c.b.x.v; (groups[k] = groups[k] || {n:0,x:0,y:0,r:0}); groups[k].n++; groups[k].x += c.px; groups[k].y += c.py; groups[k].r += c.b.x.r; });
+  const top = Object.entries(groups).sort((a,b) => b[1].n - a[1].n).slice(0, 7);
+  const used = [];
+  ctx.font = `600 12px ${getComputedStyle(document.body).fontFamily}`;
+  top.forEach(([name,g]) => {
+    let x = cx + g.x/g.n*R, y = cy + g.y/g.n*R;
+    const label = name.length > 16 ? name.slice(0,15)+"…" : name, tw = ctx.measureText(label).width;
+    let lx = x + 8, ly = y + 4;
+    for (const u of used) if (Math.abs(u.y - ly) < 15 && lx < u.x + u.w && lx + tw > u.x) ly = u.y + 16;
+    if (lx + tw > W - 8) lx = x - 8 - tw;
+    used.push({x:lx,y:ly,w:tw});
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x,y,2.6,0,Math.PI*2); ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(10,11,13,.85)"; ctx.strokeText(label, lx, ly);
+    ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.fillText(label, lx, ly);
+  });
+  // your stack markers
+  ctx.strokeStyle = "#4c9dff"; ctx.lineWidth = 1.6;
+  list.forEach(c => { if (mine(c.b.x)) { ctx.beginPath(); ctx.arc(cx + c.px*R, cy + c.py*R, 7, 0, Math.PI*2); ctx.stroke(); } });
+  // center
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx,cy,9,0,Math.PI*2); ctx.stroke();
+  placed = list;
+  // labels
+  const endDay = CF.dayIndex(DATA.released) - Math.round(e);
+  const dl = new Date(endDay*DAY).toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
+  $("radarDate").innerHTML = Math.round(e) === 0 ? `<b>${list.length}</b> in 30 days · latest` : `<b>${list.length}</b> in 30 days to ${dl}`;
+  $("scrubNow").textContent = Math.round(e) === 0 ? "Latest · " + dl : dl;
+}
+// scrub + play
+const scrub = $("scrub"), playBtn = $("play");
+let playing = false, raf = 0;
+const PLAY = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg>`, PAUSE = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>`;
+scrub.addEventListener("input", () => { stop(); endAgo = 29 - +scrub.value; draw(); });
+function stop(){ playing = false; cancelAnimationFrame(raf); playBtn.innerHTML = PLAY; playBtn.setAttribute("aria-label","Play the last 30 days"); }
+function play(){
+  if (endAgo <= 0.01) endAgo = 29;
+  playing = true; playBtn.innerHTML = PAUSE; playBtn.setAttribute("aria-label","Pause");
+  let last = performance.now();
+  const step = t => { if (!playing) return;
+    endAgo = Math.max(0, endAgo - (t-last)/1000 * 6); last = t;
+    scrub.value = Math.round(29 - endAgo); draw();
+    if (endAgo <= 0) { stop(); return; }
+    raf = requestAnimationFrame(step); };
+  raf = requestAnimationFrame(step);
+}
+playBtn.addEventListener("click", () => playing ? stop() : play());
+// hover tooltip
+const tip = $("tip");
+cv.addEventListener("mousemove", ev => {
+  const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  let best = null, bd = 14*14;
+  placed.forEach(c => { const dx = cx + c.px*R - mx, dy = cy + c.py*R - my, dd = dx*dx+dy*dy; if (dd < bd) { bd = dd; best = c; } });
+  if (!best) { tip.classList.remove("show"); return; }
+  const x = best.b.x;
+  tip.innerHTML = `<b>${esc(x.v)} ${esc(x.p)}</b><span>${esc(x.c)} · added ${fmt(x.a)}${x.r ? " · ransomware" : ""}</span>`;
+  const tx = Math.min(mx + 14, r.width - 270), ty = Math.max(8, my - 54);
+  tip.style.left = tx + "px"; tip.style.top = ty + "px"; tip.classList.add("show");
+});
+cv.addEventListener("mouseleave", () => tip.classList.remove("show"));
+new ResizeObserver(size).observe(stage);
+
+/* stack */
 function renderStack(){
-  $("chips").innerHTML = stack.map((t,i) =>
-    `<span class="chip">${esc(t)}<button type="button" data-i="${i}" aria-label="Remove ${esc(t)}">×</button></span>`).join("") || `<span class="small" style="margin:0">No stations added.</span>`;
-  $("exampleNote").textContent = isExample ? "Example list. Replace it with the vendors and products you run; it's saved in this browser." : "Saved in this browser.";
+  $("chips").innerHTML = stack.map((t,i) => `<span class="sc">${esc(t)}<button type="button" data-i="${i}" aria-label="Remove ${esc(t)}">×</button></span>`).join("") || `<span class="hint" style="margin:0">Nothing added yet.</span>`;
+  $("exampleNote").textContent = isExample ? "These are examples. Replace them with what you run; your list stays in this browser." : "Saved in this browser.";
   const lf = CF.localForecast(F, stack), n = lf.nextDeadline;
   $("local").innerHTML =
-    `<div class="row1"><span class="k">Local conditions</span><strong>${lf.name}</strong></div>` +
-    `<dl><dt>7 DAYS</dt><dd>${lf.matchesLast7Days} ${lf.matchesLast7Days===1?"match":"matches"}</dd><dt>30 DAYS</dt><dd>${lf.matchesLast30Days} ${lf.matchesLast30Days===1?"match":"matches"}</dd>` +
-    (n ? `<dt>NEXT DUE</dt><dd>${dmon(n.d)} · ${esc(n.v)} ${esc(n.p)}<br><span style="color:var(--ink-2)">${esc(n.c)}</span></dd>` : `<dt>NEXT DUE</dt><dd>none</dd>`) + `</dl>`;
-  renderDecode(); renderAlerts(); drawScope();
+    `<div class="full"><div class="k">Your forecast</div><div class="v">${lf.name}</div></div>` +
+    `<div><div class="k">This week</div><div class="v num">${lf.matchesLast7Days} <small>${lf.matchesLast7Days===1?"match":"matches"}</small></div></div>` +
+    `<div><div class="k">30 days</div><div class="v num">${lf.matchesLast30Days} <small>${lf.matchesLast30Days===1?"match":"matches"}</small></div></div>` +
+    (n ? `<div class="full"><div class="k">Next deadline · ${fmt(n.d)}</div><div class="v" style="font-size:13.5px;font-weight:500">${esc(n.v)} ${esc(n.p)}</div></div>` : "");
+  renderTiles(); renderList(); if (W) draw();
 }
-$("chips").addEventListener("click", e => {
-  const b = e.target.closest("button[data-i]"); if (!b) return;
-  stack.splice(+b.dataset.i, 1); saveStack(); renderStack();
-});
-$("addForm").addEventListener("submit", e => {
-  e.preventDefault(); const inp = $("addInput"), v = inp.value.trim(); if (!v) return;
-  if (!stack.some(t => t.toLowerCase() === v.toLowerCase())) stack.push(v);
-  inp.value = ""; saveStack(); renderStack();
-});
+$("chips").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (!b) return; stack.splice(+b.dataset.i,1); saveStack(); renderStack(); });
+$("addForm").addEventListener("submit", e => { e.preventDefault(); const inp = $("addInput"), v = inp.value.trim(); if (!v) return;
+  if (!stack.some(t => t.toLowerCase() === v.toLowerCase())) stack.push(v); inp.value = ""; saveStack(); renderStack(); });
 
-/* fronts */
-$("fronts").innerHTML = F.stormFronts90Days.map(({vendor, count}) =>
-  `<div class="front"><span class="name" title="${esc(vendor)}">${esc(vendor)}</span><span class="bar" style="width:${count/F.stormFronts90Days[0].count*100}%"></span><span class="n">${count}</span></div>`).join("");
+/* vendors */
+const fr = F.stormFronts90Days, fmax = fr.length ? fr[0].count : 1;
+$("fronts").innerHTML = fr.map(({vendor,count}) => `<div class="front"><span class="n" title="${esc(vendor)}">${esc(vendor)}</span><span class="b"><i style="width:${count/fmax*100}%"></i></span><span class="c num">${count}</span></div>`).join("");
 
 /* key */
-$("scale").innerHTML = CF.LEVELS.map(l =>
-  `<tr class="${l.key===L.key?"now":""}"><td><span class="box" style="background:${LVCOL[l.color]};border-color:${LVCOL[l.color]}"></span></td><td><b>${esc(l.name)}</b> · ${CODE[l.key]}${l.key===L.key?" <b style='color:var(--magenta)'>· NOW</b>":""}<br>${esc(l.advice)}</td></tr>`).join("");
+$("key").innerHTML = CF.LEVELS.map(l => `<div class="${l.key===L.key?"on":""}">${ICON[LEVEL_ICON[l.key]]}<span><b>${esc(l.name)}</b><br>${esc(l.advice)}</span></div>`).join("");
 
 /* advisories */
-let range = 30, shown = 25;
-function renderAlerts(){
+const AVC = ["#3b6fd4","#7b5cd6","#c2509a","#d0663e","#3c9a6b","#2f8fa8","#9a7b2f","#5f6b7a"];
+let range = 30, shown = 20, fMine = false, fR = false;
+function renderList(){
   const q = $("search").value.trim().toLowerCase();
-  const onlyMine = $("onlyMine").checked, onlyR = $("onlyRansom").checked;
-  const list = V.filter(x => x.ago < range && (!onlyMine || mine(x)) && (!onlyR || x.r) &&
-    (!q || (x.c+" "+x.v+" "+x.p+" "+x.n).toLowerCase().includes(q)));
-  $("count").textContent = `${list.length} ${list.length===1?"advisory":"advisories"} · newest first`;
-  $("alerts").innerHTML = list.slice(0, shown).map((x,i) => {
-    const m = mine(x);
-    const due = x.dueIn < 0 ? `<td class="due past">${dmon(x.d)} · past</td>`
-      : `<td class="due${x.dueIn<=7?" soon":""}">${dmon(x.d)} · ${x.dueIn===0?"TODAY":x.dueIn===1?"1D":x.dueIn+"D"}</td>`;
-    return `<tr class="row" data-i="${i}" tabindex="0" aria-expanded="false">
-      <td class="added">${dmon(x.a)}</td>
-      <td class="vp"><span class="vend">${esc(x.v)}</span> <span class="prod">${esc(x.p)}</span></td>
-      <td class="cve"><a href="https://nvd.nist.gov/vuln/detail/${esc(x.c)}" target="_blank" rel="noopener">${esc(x.c)}</a></td>
+  const list = V.filter(x => x.ago < range && (!fMine || mine(x)) && (!fR || x.r) && (!q || (x.c+" "+x.v+" "+x.p+" "+x.n).toLowerCase().includes(q)));
+  $("count").textContent = `${list.length} ${list.length===1?"advisory":"advisories"}`;
+  $("list").innerHTML = list.slice(0, shown).map(x => {
+    const m = mine(x), col = AVC[Math.floor(hash(x.v)*AVC.length)];
+    const due = x.dueIn < 0 ? `<div class="due past"><b>Overdue</b>${fmt(x.d)}</div>`
+      : `<div class="due${x.dueIn<=7?" soon":""}"><b>${x.dueIn===0?"Due today":x.dueIn===1?"Due tomorrow":`In ${x.dueIn} days`}</b>${fmt(x.d)}</div>`;
+    return `<div class="item" tabindex="0" role="button" aria-expanded="false">
+      <div class="av" style="background:${col}">${esc(x.v.trim()[0]||"?")}</div>
+      <div class="t">${esc(x.v)} ${esc(x.p)}</div>
       ${due}
-      <td class="fl">${x.r?'<span class="flag r">RNSW</span>':""}${m?'<span class="flag m">STN</span>':""}</td>
-    </tr><tr class="desc hidden"><td colspan="5">${esc(x.s)}</td></tr>`;
-  }).join("") || `<tr><td colspan="5" style="padding:16px 0;color:var(--ink-2)">No advisories match. Try a longer range or clear FIND.</td></tr>`;
-  $("moreWrap").innerHTML = list.length > shown ? `<button class="btn" type="button" id="moreBtn">Show ${Math.min(25, list.length-shown)} more</button>` : "";
+      <div class="s"><span class="cve">${esc(x.c)}</span><span>· Added ${fmt(x.a)}</span>${x.r?'<span class="tag r">Ransomware</span>':""}${m?'<span class="tag m">Your stack</span>':""}</div>
+      <div class="x">${esc(x.s)}<br><a href="https://nvd.nist.gov/vuln/detail/${esc(x.c)}" target="_blank" rel="noopener">View on NVD ↗</a></div>
+    </div>`;
+  }).join("") || `<p class="hint" style="padding:16px">No advisories match. Try a longer range or clear the search.</p>`;
+  $("moreWrap").innerHTML = list.length > shown ? `<button class="more" type="button" id="moreBtn">Show ${Math.min(20, list.length-shown)} more</button>` : "";
 }
-function toggle(row){ const open = row.classList.toggle("open"); row.setAttribute("aria-expanded", open); row.nextElementSibling.classList.toggle("hidden", !open); }
-$("alerts").addEventListener("click", e => { if (e.target.closest("a")) return; const r = e.target.closest("tr.row"); if (r) toggle(r); });
-$("alerts").addEventListener("keydown", e => { const r = e.target.closest("tr.row"); if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggle(r); } });
-$("moreWrap").addEventListener("click", e => { if (e.target.id === "moreBtn") { shown += 25; renderAlerts(); } });
-document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
-  range = +b.dataset.range; shown = 25;
-  document.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", o === b));
-  renderAlerts();
-}));
-["search","onlyMine","onlyRansom"].forEach(id => $(id).addEventListener("input", () => { shown = 25; renderAlerts(); }));
+const toggle = it => { const o = it.classList.toggle("open"); it.setAttribute("aria-expanded", o); };
+$("list").addEventListener("click", e => { if (e.target.closest("a")) return; const it = e.target.closest(".item"); if (it) toggle(it); });
+$("list").addEventListener("keydown", e => { const it = e.target.closest(".item"); if (it && (e.key==="Enter"||e.key===" ")) { e.preventDefault(); toggle(it); } });
+$("moreWrap").addEventListener("click", e => { if (e.target.id === "moreBtn") { shown += 20; renderList(); } });
+document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => { range = +b.dataset.range; shown = 20;
+  document.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", o === b)); renderList(); }));
+$("fMine").addEventListener("click", e => { fMine = !fMine; e.currentTarget.setAttribute("aria-pressed", fMine); shown = 20; renderList(); });
+$("fRansom").addEventListener("click", e => { fR = !fR; e.currentTarget.setAttribute("aria-pressed", fR); shown = 20; renderList(); });
+$("search").addEventListener("input", () => { shown = 20; renderList(); });
 
-$("footer").innerHTML =
-  `<p>Source: <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities catalog</a>, refreshed every few hours. Patch-by dates are CISA's deadlines for U.S. federal agencies. This briefing is a rough gauge, not a risk assessment of your environment.</p>` +
-  `<p>Data feed: <a href="/api/forecast">/api/forecast</a></p>`;
+/* tabs highlight */
+const tabs = [...document.querySelectorAll(".tabs a")];
+addEventListener("scroll", () => {
+  const y = scrollY + 120; let cur = tabs[0];
+  tabs.forEach(t => { const el = document.querySelector(t.getAttribute("href")); if (el && el.offsetTop <= y) cur = t; });
+  tabs.forEach(t => t.classList.toggle("on", t === cur));
+}, {passive:true});
 
-renderStack(); drawBars();
-addEventListener("resize", drawBars);
+$("footer").innerHTML = `<p>Data from the <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities catalog</a>, refreshed every few hours. Patch-by dates are CISA's deadlines for U.S. federal agencies. The forecast is a rough gauge, not a risk assessment of your environment.</p><p><a href="/api/forecast">Forecast API</a></p>`;
+
+renderStack(); size();
+if (!reduce) { endAgo = 29; scrub.value = 0; setTimeout(play, 400); }
 }
 })();
 </script>
