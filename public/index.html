@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cyber Weather</title>
 <meta name="description" content="Live forecast of actively exploited vulnerabilities, from CISA's KEV catalog.">
-<meta name="theme-color" content="#0c0d10">
+<meta name="theme-color" content="#121214">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
@@ -14,307 +14,325 @@
 <meta name="apple-mobile-web-app-title" content="Cyber Weather">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
-/* Layout: an app shell. Top bar, radar as the hero with the current reading beside it,
-   a day strip and detail cards like a weather app, then the advisory list and your stack.
-   Solid surfaces, system type, color reserved for the radar and the level. */
+/* Layout: sidebar app shell + two-column card dashboard.
+   Left column: trend chart, radar + stack, vendors. Right column: threat score,
+   week vs. week, advisories, deadlines. Charcoal surfaces, orange accent, teal for trend. */
 :root{
-  --bg:#0c0d10;
-  --card:#15171b;
-  --card-2:#1b1e23;
-  --line:#25282e;
-  --text:#ececf1;
-  --muted:#8d919a;
-  --dim:#5d626b;
-  --blue:#4c9dff;
-  --green:#3ccf7a; --yellow:#f2c94c; --orange:#f2994a; --red:#eb5757; --magenta:#d45ad8;
-  --lvl:var(--red);
+  --bg:#121214;
+  --side:#0d0d0f;
+  --card:#1a1a1d;
+  --card-2:#222226;
+  --line:#2a2a2f;
+  --text:#f1f0ee;
+  --muted:#9a9894;
+  --dim:#66645f;
+  --orange:#ff7a3d;
+  --teal:#3fc1b0;
+  --green:#3ccf7a;
+  --yellow:#f2c94c;
+  --red:#f0574f;
+  --blue:#5aa2ff;
+  --lvl:var(--orange);
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  --mono:ui-monospace,"SF Mono","Cascadia Mono","Segoe UI Mono",Menlo,Consolas,monospace;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,monospace;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg)}
-body{color:var(--text);font:400 14px/1.45 var(--font);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
-a{color:var(--blue);text-decoration:none}
-a:hover{text-decoration:underline}
+html,body{margin:0;height:100%;background:var(--bg)}
+body{color:var(--text);font:400 13.5px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:6px}
 h1,h2,h3,p{margin:0}
-h1,h2,h3{text-wrap:balance}
 .num{font-variant-numeric:tabular-nums}
 
-/* App bar */
-.bar{position:sticky;top:0;z-index:20;background:rgba(12,13,16,.92);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
-@supports (backdrop-filter:blur(1px)){.bar{background:rgba(12,13,16,.8);backdrop-filter:saturate(1.4) blur(14px)}}
-.bar-in{max-width:1240px;margin:0 auto;padding:0 20px;height:56px;display:flex;align-items:center;gap:20px}
-.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
-.logo img{width:26px;height:26px;border-radius:7px}
-.tabs{display:flex;gap:2px;margin-left:8px}
-.tabs a{color:var(--muted);font-weight:500;padding:6px 10px;border-radius:8px;font-size:13.5px}
-.tabs a:hover{color:var(--text);background:var(--card);text-decoration:none}
-.tabs a.on{color:var(--text);background:var(--card-2)}
-.updated{margin-left:auto;color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:8px;white-space:nowrap}
-.updated .d{width:6px;height:6px;border-radius:50%;background:var(--green)}
-.updated.off .d{background:var(--dim)}
+/* Shell */
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100%}
+.side{background:var(--side);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px;font-weight:600;font-size:14.5px}
+.brand img{width:26px;height:26px;border-radius:7px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--muted);font-weight:500;font-size:13.5px}
+.nav a:hover{background:#18181b;color:var(--text)}
+.nav a.on{background:#1f1f23;color:var(--text)}
+.nav svg{width:16px;height:16px;flex:none}
+.nav .badge{margin-left:auto;background:var(--orange);color:#1a0d05;font-size:11px;font-weight:700;border-radius:6px;padding:0 6px;line-height:18px}
+.side .foot{margin-top:auto;display:grid;gap:2px}
 
-.wrap{max-width:1240px;margin:0 auto;padding:20px 20px 48px;display:grid;gap:16px}
-.wrap > *,.hero > *,.main > *,.side > *,.tiles > *{min-width:0}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
-.card-h{display:flex;align-items:center;gap:8px;padding:14px 16px 0;color:var(--muted);font-size:12.5px;font-weight:500}
-.card-h svg{width:15px;height:15px;flex:none}
-.card-h .r{margin-left:auto;color:var(--dim);font-weight:400}
+.main{padding:22px 28px 40px;min-width:0}
+.head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.head h1{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.head p{color:var(--muted);margin-top:2px}
+.head .acts{display:flex;gap:8px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--muted);font-size:12.5px;background:var(--card)}
+.pill i{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.pill.off i{background:var(--dim)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:500;cursor:pointer}
+.btn:hover{background:var(--card-2)}
+.btn svg{width:14px;height:14px}
 
-/* Hero */
-.hero{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:16px}
-.radar-card{padding:0;overflow:hidden;display:flex;flex-direction:column}
-.radar-stage{position:relative;flex:1;min-height:500px;background:#0a0b0d}
+.cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:16px;align-items:start}
+.col{display:grid;gap:16px;min-width:0}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;min-width:0}
+.ch{display:flex;align-items:center;gap:10px;padding:16px 18px 0}
+.ch h2{font-size:14px;font-weight:600}
+.ch .sub{color:var(--muted);font-size:12.5px}
+.ch .r{margin-left:auto;display:flex;gap:6px;align-items:center}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:2px}
+.seg button{border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:500;padding:4px 9px;border-radius:6px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--card-2);color:var(--text)}
+.link{color:var(--muted);font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:transparent;cursor:pointer}
+.link:hover{color:var(--text);background:var(--card-2)}
+
+/* Trend card */
+.kpi{display:flex;align-items:baseline;gap:10px;padding:6px 18px 0;flex-wrap:wrap}
+.kpi b{font-size:28px;font-weight:600;letter-spacing:-.02em}
+.delta{font-size:12.5px;font-weight:600;border-radius:6px;padding:2px 6px}
+.delta.up{color:var(--red);background:rgba(240,87,79,.12)}
+.delta.down{color:var(--green);background:rgba(60,207,122,.12)}
+.delta.flat{color:var(--muted);background:var(--card-2)}
+.kpi span{color:var(--muted);font-size:12.5px}
+.chart{position:relative;padding:8px 10px 10px}
+.chart svg{display:block;width:100%}
+.chart text{fill:var(--dim);font:400 11px var(--font)}
+.ctip{position:absolute;pointer-events:none;background:#26262b;border:1px solid #34343a;border-radius:8px;padding:6px 9px;font-size:12px;white-space:nowrap;opacity:0;transition:opacity .1s;transform:translate(-50%,-110%)}
+.ctip.show{opacity:1}
+.ctip b{font-weight:600}
+.ctip span{color:var(--muted)}
+
+/* Score */
+.score{padding:6px 18px 18px;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center}
+.score .gwrap{grid-row:1/4;position:relative;width:118px;height:70px}
+.score .gwrap svg{width:118px;height:70px;display:block}
+.score .gnum{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-size:28px;font-weight:700;letter-spacing:-.02em}
+.score .lvl{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
+.score .lvl em{font-style:normal;font-size:11.5px;font-weight:700;color:#1a0d05;background:var(--lvl);border-radius:6px;padding:2px 7px}
+.score .desc{color:var(--muted);font-size:12.5px}
+.advice{margin:0 18px 18px;background:var(--card-2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:#cfccc6;line-height:1.5}
+.advice b{color:var(--text)}
+
+/* Week */
+.wk{display:flex;align-items:baseline;gap:8px;padding:6px 18px 0}
+.wk b{font-size:24px;font-weight:600}
+.wk span{color:var(--muted);font-size:12.5px}
+.legend2{display:flex;gap:14px;padding:4px 18px 0;font-size:12px;color:var(--muted)}
+.legend2 i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+/* Radar */
+.radar-stage{position:relative;height:340px;margin:10px 10px 0;border-radius:10px;overflow:hidden;background:#0c0c0e}
 #radar{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
-.tip{position:absolute;pointer-events:none;background:#202329;border:1px solid #33373e;border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.35;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,.45);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;z-index:2}
-.tip.show{opacity:1;transform:none}
-.tip b{display:block;font-weight:600}
-.tip span{color:var(--muted)}
-.radar-top{position:absolute;left:14px;top:12px;right:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;z-index:1;pointer-events:none}
-.chip{display:inline-flex;align-items:center;gap:6px;background:rgba(21,23,27,.85);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:12px;color:var(--muted);pointer-events:auto}
-.chip b{color:var(--text);font-weight:600}
-.radar-ctl{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line);background:var(--card)}
-.play{width:34px;height:34px;border-radius:50%;border:0;background:var(--text);color:#0c0d10;display:grid;place-items:center;cursor:pointer;flex:none}
-.play:hover{background:#fff}
-.play svg{width:14px;height:14px}
-.scrub{flex:1;display:grid;gap:4px;min-width:0}
-.scrub-l{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim)}
-.scrub-l b{color:var(--text);font-weight:600}
-input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;background:var(--line);outline:none;margin:6px 0}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--text);cursor:pointer;border:0}
-input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--text);cursor:pointer;border:0}
-.scale{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dim);width:120px;flex:none}
-.scale i{display:block;height:6px;border-radius:3px;background:linear-gradient(90deg,#1d7a55,#3ccf7a,#f2c94c,#f2994a,#eb5757,#d45ad8)}
-.scale span{display:flex;justify-content:space-between}
+.rtip{position:absolute;pointer-events:none;background:#26262b;border:1px solid #34343a;border-radius:8px;padding:6px 9px;font-size:12px;max-width:240px;opacity:0;transition:opacity .1s;z-index:2}
+.rtip.show{opacity:1}
+.rtip b{display:block;font-weight:600}
+.rtip span{color:var(--muted)}
+.rctl{display:flex;align-items:center;gap:10px;padding:10px 14px 14px}
+.play{width:30px;height:30px;border-radius:50%;border:0;background:var(--text);color:#121214;display:grid;place-items:center;cursor:pointer;flex:none}
+.play svg{width:12px;height:12px}
+.rctl .scr{flex:1;min-width:0}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;background:var(--line);outline:none;margin:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--text);cursor:pointer;border:0}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--text);cursor:pointer;border:0}
+.rctl .d{font-size:12px;color:var(--muted);white-space:nowrap;min-width:74px;text-align:right}
 
-.now{padding:20px 20px 18px;display:flex;flex-direction:column}
-.now .where{color:var(--muted);font-size:13px;display:flex;align-items:center;gap:6px}
-.now .big{display:flex;align-items:flex-end;gap:14px;margin-top:14px}
-.now .big .n{font-size:76px;font-weight:300;line-height:.9;letter-spacing:-.04em}
-.now .big .u{color:var(--muted);font-size:14px;line-height:1.3;padding-bottom:8px}
-.now .cond{display:flex;align-items:center;gap:10px;margin-top:16px}
-.now .cond svg{width:30px;height:30px;color:var(--lvl);flex:none}
-.now .cond h1{font-size:26px;font-weight:600;letter-spacing:-.02em}
-.now .sum{color:var(--muted);font-size:14px;margin-top:8px;line-height:1.5}
-.level-pill{display:inline-flex;align-items:center;gap:6px;margin-top:14px;align-self:flex-start;font-size:12px;font-weight:600;color:var(--lvl);background:color-mix(in srgb,var(--lvl) 14%,transparent);border-radius:999px;padding:4px 10px}
-.advice{margin-top:auto;padding-top:16px}
-.advice p{background:var(--card-2);border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.5;color:#cfd2d8}
-.advice p b{color:var(--text);font-weight:600}
-
-/* Day strip */
-.days{display:grid;grid-template-columns:repeat(14,minmax(56px,1fr));gap:0;padding:10px 6px 14px;overflow-x:auto;scrollbar-width:none}
-.days::-webkit-scrollbar{display:none}
-.day{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 4px;border-radius:12px;min-width:56px}
-.day.today{background:var(--card-2)}
-.day .w{font-size:12.5px;color:var(--muted);font-weight:500}
-.day.today .w{color:var(--text)}
-.day svg{width:24px;height:24px}
-.day .c{font-size:16px;font-weight:600}
-.day .c.z{color:var(--dim);font-weight:400}
-.day .b{width:4px;border-radius:2px;background:var(--line);height:32px;position:relative;overflow:hidden}
-.day .b i{position:absolute;left:0;right:0;bottom:0;border-radius:2px}
-
-/* Detail cards */
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.tile{padding-bottom:16px;display:flex;flex-direction:column}
-.tile .v{font-size:34px;font-weight:500;letter-spacing:-.02em;padding:10px 16px 0;line-height:1.1}
-.tile .v small{font-size:15px;color:var(--muted);font-weight:400;margin-left:4px;letter-spacing:0}
-.tile .d{color:var(--muted);font-size:13px;padding:6px 16px 0;line-height:1.45}
-.gauge{margin:14px 16px 0;height:5px;border-radius:3px;background:linear-gradient(90deg,#3ccf7a,#f2c94c 45%,#f2994a 70%,#eb5757 88%,#d45ad8);position:relative}
-.gauge i{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid var(--card);transform:translate(-50%,-50%)}
+/* Goals-style stack */
+.goals{padding:12px 18px 18px;display:grid;gap:14px}
+.goal{display:grid;grid-template-columns:30px 1fr auto;gap:2px 10px;align-items:center}
+.goal .ic{grid-row:1/3;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:12.5px;color:#fff}
+.goal .n{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.goal .v{color:var(--muted);font-size:12px;text-align:right}
+.goal .bar{grid-column:2/4;height:6px;border-radius:3px;background:var(--card-2);overflow:hidden}
+.goal .bar i{display:block;height:100%;border-radius:3px}
+.goal .rm{border:0;background:transparent;color:var(--dim);cursor:pointer;padding:0 0 0 6px;font-size:14px}
+.goal .rm:hover{color:var(--text)}
+.addrow{display:flex;gap:8px;padding:0 18px 6px}
+input[type=text],input[type=search]{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);font:inherit;font-size:13px;border-radius:8px;padding:7px 10px}
+input::placeholder{color:var(--dim)}
+input:focus{outline:none;border-color:#5a3a2a}
+.hint{color:var(--dim);font-size:12px;padding:0 18px 14px}
+.local{margin:0 18px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--card-2);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--muted)}
+.local b{color:var(--text);font-size:14px;font-weight:600}
 
 /* Lists */
-.main{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:16px;align-items:start}
-.side{display:grid;gap:16px}
-.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px}
-.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:2px}
-.seg button{border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:500;padding:5px 11px;border-radius:8px;cursor:pointer}
-.seg button[aria-pressed=true]{background:var(--card-2);color:var(--text)}
-.fbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;font-weight:500;padding:6px 11px;border-radius:10px;cursor:pointer}
-.fbtn[aria-pressed=true]{color:var(--text);border-color:#3a3e46;background:var(--card-2)}
-.fbtn i{width:7px;height:7px;border-radius:50%}
-.search{flex:1 1 200px;position:relative}
-.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--dim)}
-input[type=search],input[type=text]{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);font:inherit;font-size:13.5px;border-radius:10px;padding:8px 10px}
-.search input{padding-left:30px}
-input::placeholder{color:var(--dim)}
-input[type=search]:focus,input[type=text]:focus{outline:none;border-color:#3d5f8f}
-.count{padding:0 16px 8px;color:var(--dim);font-size:12px}
+.list{padding:6px 8px 10px}
+.li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:9px 10px;border-radius:10px;cursor:pointer}
+.li:hover{background:#202024}
+.li .av{grid-row:1/3;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;color:#fff}
+.li .t{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .s{color:var(--muted);font-size:12px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+.li .s .cve{font-family:var(--mono);font-size:11.5px}
+.li .r{grid-row:1/3;grid-column:3;text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+.li .r b{display:block;font-size:13px;font-weight:600;color:var(--text)}
+.li .r.soon b{color:var(--orange)}
+.li .r.past b{color:var(--dim)}
+.tag{font-size:11px;font-weight:600;border-radius:5px;padding:1px 6px;background:var(--card-2);color:var(--muted)}
+.tag.r{color:var(--red);background:rgba(240,87,79,.12)}
+.tag.m{color:var(--blue);background:rgba(90,162,255,.12)}
+.li .x{grid-column:2/4;display:none;color:#cfccc6;font-size:12.5px;line-height:1.55;padding-top:6px}
+.li.open .x{display:block}
+.li .x a{color:var(--orange);display:inline-block;margin-top:6px}
+.filters{display:flex;gap:6px;padding:12px 18px 0;flex-wrap:wrap}
+.search{padding:10px 18px 0}
+.more{display:block;margin:2px auto 14px}
+.empty{color:var(--dim);font-size:12.5px;padding:14px 10px}
 
-.list{border-top:1px solid var(--line)}
-.item{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:4px 12px;padding:12px 16px;border-bottom:1px solid var(--line);cursor:pointer;align-items:center}
-.item:hover{background:#181a1f}
-.item:last-child{border-bottom:0}
-.av{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:600;font-size:14px;color:#fff;grid-row:1/3;align-self:start}
-.item .t{grid-column:2;grid-row:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.item .s{grid-column:2;grid-row:2;color:var(--muted);font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.item .s .cve{font-family:var(--mono);font-size:12px}
-.item .due{grid-column:3;grid-row:1/3;text-align:right;font-size:12.5px;color:var(--muted);white-space:nowrap}
-.item .due b{display:block;color:var(--text);font-weight:500;font-size:13px}
-.item .due.soon b{color:var(--orange)}
-.item .due.past b{color:var(--dim)}
-.tag{font-size:11px;font-weight:600;border-radius:6px;padding:1px 6px}
-.tag.r{color:var(--red);background:rgba(235,87,87,.12)}
-.tag.m{color:var(--blue);background:rgba(76,157,255,.12)}
-.item .x{grid-column:2/4;grid-row:3;color:#c3c6cc;font-size:13.5px;line-height:1.55;display:none;padding-top:6px}
-.item.open .x{display:block}
-.item .x a{font-size:12.5px;display:inline-block;margin-top:6px}
-.more{display:block;margin:12px auto 14px;border:1px solid var(--line);background:transparent;border-radius:10px;padding:7px 14px;color:var(--text);font-size:13px;font-weight:500;cursor:pointer}
-.more:hover{background:var(--card-2)}
+/* Investments-style vendor table */
+.vt{width:100%;border-collapse:collapse;margin:6px 0 10px}
+.vt th{font-size:11.5px;font-weight:500;color:var(--dim);text-align:left;padding:8px 18px;border-bottom:1px solid var(--line)}
+.vt th:not(:first-child),.vt td:not(:first-child){text-align:right}
+.vt td{padding:10px 18px;border-bottom:1px solid var(--line);font-size:13px}
+.vt tr:last-child td{border-bottom:0}
+.vt .vn{display:flex;align-items:center;gap:10px;font-weight:500}
+.vt .vn i{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;color:#fff;flex:none}
+.vt svg{width:90px;height:24px;vertical-align:middle}
 
-.pad{padding:12px 16px 16px}
-.stack-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.sc{display:inline-flex;align-items:center;gap:4px;background:var(--card-2);border-radius:8px;padding:4px 4px 4px 10px;font-size:13px}
-.sc button{border:0;background:transparent;color:var(--dim);cursor:pointer;width:22px;height:22px;border-radius:6px;font-size:15px;line-height:1}
-.sc button:hover{color:var(--text);background:#262a31}
-.addrow{display:flex;gap:8px}
-.btn{border:0;background:var(--text);color:#0c0d10;font-weight:600;font-size:13px;border-radius:10px;padding:0 14px;cursor:pointer}
-.btn:hover{background:#fff}
-.hint{color:var(--dim);font-size:12px;margin-top:8px}
-.local{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:12px;overflow:hidden}
-.local > div{background:var(--card-2);padding:10px 12px}
-.local .full{grid-column:1/-1}
-.local .k{color:var(--muted);font-size:12px}
-.local .v{font-size:15px;font-weight:600;margin-top:2px}
-.local .v small{font-weight:400;color:var(--muted);font-size:12.5px}
+/* Budget-style deadlines */
+.budget{padding:12px 18px 18px}
+.stackbar{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;margin:6px 0 14px}
+.stackbar i{display:block;height:100%}
+.brow{display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;padding:6px 0;font-size:13px;border-top:1px solid var(--line)}
+.brow:first-of-type{border-top:0}
+.brow .sw{width:10px;height:10px;border-radius:3px}
+.brow .c{font-weight:600}
 
-.front{display:grid;grid-template-columns:minmax(0,7.5em) 1fr 1.8em;gap:10px;align-items:center;font-size:13px;padding:6px 0}
-.front .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cfd2d8}
-.front .b{height:6px;border-radius:3px;background:var(--card-2);overflow:hidden}
-.front .b i{display:block;height:100%;border-radius:3px;background:var(--blue)}
-.front .c{text-align:right;color:var(--muted)}
+footer{color:var(--dim);font-size:12px;line-height:1.6;margin-top:22px;display:flex;justify-content:space-between;gap:8px 24px;flex-wrap:wrap}
+footer a{color:var(--muted);text-decoration:underline}
 
-.key{display:grid;gap:10px}
-.key div{display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:13px;color:var(--muted);line-height:1.45}
-.key svg{width:22px;height:22px}
-.key b{color:var(--text);font-weight:600}
-.key .on b::after{content:" · now";color:var(--lvl)}
-
-footer{color:var(--dim);font-size:12px;line-height:1.6;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 24px;padding-top:8px}
-footer p{max-width:80ch}
-
-@media (max-width:1000px){
-  .hero,.main{grid-template-columns:1fr}
-  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .radar-stage{min-height:0;aspect-ratio:1/1;max-height:640px}
+/* Mobile top bar (sidebar hides) */
+.mtop{display:none}
+@media (max-width:1100px){
+  .cols{display:flex;flex-direction:column}
+  .col{display:contents}
+  .col > *{width:100%}
+  #levelCard{order:1} #trend{order:2} #weekCard{order:3} .row2{order:4} #advisories{order:5} #vendors{order:6} #deadlines{order:7}
 }
-@media (max-width:620px){
-  .tabs{display:none}
-  .wrap{padding:12px 12px 40px;gap:12px}
-  .bar-in{padding:0 14px}
-  .tiles{gap:12px}
-  .tile .v{font-size:28px}
-  .scale{display:none}
-  .now .big .n{font-size:64px}
-  .item{grid-template-columns:32px minmax(0,1fr) auto}
-  .av{width:32px;height:32px;font-size:13px}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .mtop{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;background:rgba(13,13,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 16px 10px;font-weight:600}
+  .mtop img{width:24px;height:24px;border-radius:6px}
+  .mtop nav{margin-left:auto;display:flex;gap:4px}
+  .mtop nav a{font-size:12.5px;color:var(--muted);padding:5px 8px;border-radius:7px;font-weight:500}
+  .main{padding:16px 12px 32px}
+  .row2{grid-template-columns:1fr}
+  .head .acts .btn{display:none}
+}
+@media (max-width:520px){
+  .vt .spark{display:none}
+  .vt th,.vt td{padding-left:14px;padding-right:14px}
+  .radar-stage{height:300px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<header class="bar">
-  <div class="bar-in">
-    <div class="logo"><img src="/icons/icon-192.png" alt="">Cyber Weather</div>
-    <nav class="tabs" aria-label="Sections">
-      <a href="#top" class="on">Overview</a>
-      <a href="#advisories">Advisories</a>
-      <a href="#stack">My stack</a>
+<div class="mtop"><img src="/icons/icon-192.png" alt="">Cyber Weather<nav><a href="#top">Overview</a><a href="#advisories">Advisories</a><a href="#stack">Stack</a></nav></div>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><img src="/icons/icon-192.png" alt="">Cyber Weather</div>
+    <nav class="nav" aria-label="Sections">
+      <a href="#top" class="on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/></svg>Dashboard</a>
+      <a href="#trend"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l4-4 3 2.5L14 4"/><path d="M10.5 4H14v3.5"/></svg>Trends</a>
+      <a href="#radarCard"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.8"/><path d="M8 8l4.2-4.2"/></svg>Radar</a>
+      <a href="#advisories"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 14 4v4c0 3.3-2.6 5.8-6 6.5C4.6 13.8 2 11.3 2 8V4z"/></svg>Advisories<span class="badge num" id="navCount"></span></a>
+      <a href="#deadlines"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8.5" r="5.5"/><path d="M8 5.5v3l2 1.5" stroke-linecap="round"/></svg>Deadlines</a>
+      <a href="#stack"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.8 14.2 5 8 8.2 1.8 5z"/><path d="m1.8 8 6.2 3.2L14.2 8M1.8 11l6.2 3.2 6.2-3.2"/></svg>My stack</a>
+      <a href="#vendors"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13.5h12M4 11V7M8 11V3.5M12 11V6"/></svg>Vendors</a>
     </nav>
-    <div class="updated off" id="updated"><span class="d"></span><span id="updatedText">Connecting…</span></div>
-  </div>
-</header>
+    <nav class="nav foot">
+      <a href="/api/forecast"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5.5 4 2 8l3.5 4M10.5 4 14 8l-3.5 4"/></svg>Forecast API</a>
+      <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 4.8v.2" stroke-linecap="round"/></svg>About the data</a>
+    </nav>
+  </aside>
 
-<main class="wrap" id="top">
-  <section class="hero">
-    <div class="card radar-card">
-      <div class="radar-stage" id="stage">
-        <canvas id="radar" aria-label="Radar of exploited vulnerabilities over the past 30 days. Today is at the center."></canvas>
-        <div class="radar-top">
-          <span class="chip">Threat radar</span>
-          <span class="chip" id="radarDate">Today</span>
-        </div>
-        <div class="tip" id="tip"></div>
-      </div>
-      <div class="radar-ctl">
-        <button class="play" id="play" type="button" aria-label="Play the last 30 days"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg></button>
-        <div class="scrub">
-          <input type="range" id="scrub" min="0" max="29" step="1" value="29" aria-label="Radar date">
-          <div class="scrub-l"><span id="scrubFrom">30 days ago</span><b id="scrubNow">Today</b></div>
-        </div>
-        <div class="scale"><i></i><span><span>Light</span><span>Heavy</span></span></div>
+  <main class="main" id="top">
+    <div class="head">
+      <div><h1 id="greet">Welcome back</h1><p id="subgreet">Loading today's threat forecast…</p></div>
+      <div class="acts">
+        <span class="pill off" id="upd"><i></i><span id="updText">Connecting</span></span>
+        <a class="btn" href="#stack"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 2.5l2.5 2.5L6 12.5H3.5V10z"/></svg>Edit stack</a>
       </div>
     </div>
 
-    <div class="card now">
-      <div class="where"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.2"/><path d="M1.8 8h12.4M8 1.8c2 2 2 10.4 0 12.4M8 1.8c-2 2-2 10.4 0 12.4"/></svg>Global · CISA KEV catalog</div>
-      <div class="big"><span class="n num" id="bigN">–</span><span class="u">newly exploited<br>this week</span></div>
-      <div class="cond"><span id="condIcon"></span><h1 id="level">Loading</h1></div>
-      <p class="sum" id="summary">Fetching the latest catalog…</p>
-      <span class="level-pill" id="pill" hidden></span>
-      <div class="advice"><p id="advice"></p></div>
-    </div>
-  </section>
+    <div class="cols">
+      <div class="col">
+        <section class="card" id="trend">
+          <div class="ch"><h2>Exploited vulnerabilities</h2><span class="sub">added to CISA KEV</span>
+            <div class="r"><div class="seg" role="group" aria-label="Range" id="trRange">
+              <button type="button" data-d="30" aria-pressed="false">1M</button><button type="button" data-d="90" aria-pressed="true">3M</button><button type="button" data-d="180" aria-pressed="false">6M</button><button type="button" data-d="365" aria-pressed="false">1Y</button>
+            </div></div></div>
+          <div class="kpi"><b class="num" id="trTotal">–</b><span class="delta flat" id="trDelta">–</span><span id="trNote"></span></div>
+          <div class="chart" id="trChart"><svg id="trSvg" height="230"></svg><div class="ctip" id="trTip"></div></div>
+        </section>
 
-  <section class="card">
-    <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>14-day history<span class="r" id="avg"></span></div>
-    <div class="days" id="days"></div>
-  </section>
+        <div class="row2">
+          <section class="card" id="radarCard">
+            <div class="ch"><h2>Threat radar</h2><span class="sub" id="rSub">30 days</span></div>
+            <div class="radar-stage" id="stage"><canvas id="radar" aria-label="Radar of exploited vulnerabilities over 30 days; today at the center"></canvas><div class="rtip" id="rtip"></div></div>
+            <div class="rctl">
+              <button class="play" id="play" type="button" aria-label="Play the last 30 days"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg></button>
+              <div class="scr"><input type="range" id="scrub" min="0" max="29" value="29" aria-label="Radar date"></div>
+              <span class="d" id="rDate">Latest</span>
+            </div>
+          </section>
 
-  <section class="tiles" id="tiles"></section>
-
-  <div class="main">
-    <section class="card" id="advisories">
-      <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 14 4v4c0 3.3-2.6 5.8-6 6.5C4.6 13.8 2 11.3 2 8V4z"/><path d="M8 5v3.5M8 10.8v.2" stroke-linecap="round"/></svg>Active advisories<span class="r">Tap an advisory for details</span></div>
-      <div class="toolbar">
-        <div class="seg" role="group" aria-label="Time range">
-          <button type="button" data-range="7" aria-pressed="false">7 days</button>
-          <button type="button" data-range="30" aria-pressed="true">30 days</button>
-          <button type="button" data-range="90" aria-pressed="false">90 days</button>
+          <section class="card" id="stack">
+            <div class="ch"><h2>My stack</h2><span class="sub">matches, 30 days</span></div>
+            <div class="goals" id="goals"></div>
+            <form class="addrow" id="addForm"><input type="text" id="addInput" placeholder="Add a vendor or product" aria-label="Add a vendor or product"><button class="btn" type="submit">Add</button></form>
+            <p class="hint" id="exampleNote"></p>
+            <div class="local" id="local"></div>
+          </section>
         </div>
-        <button class="fbtn" type="button" id="fMine" aria-pressed="false"><i style="background:var(--blue)"></i>My stack</button>
-        <button class="fbtn" type="button" id="fRansom" aria-pressed="false"><i style="background:var(--red)"></i>Ransomware</button>
-        <div class="search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7" cy="7" r="4.8"/><path d="m10.6 10.6 3.4 3.4" stroke-linecap="round"/></svg><input type="search" id="search" placeholder="Search vendor, product or CVE" aria-label="Search advisories"></div>
+
+        <section class="card" id="vendors">
+          <div class="ch"><h2>Most targeted vendors</h2><span class="sub">last 90 days</span></div>
+          <table class="vt"><thead><tr><th>Vendor</th><th class="spark">12 weeks</th><th>Exploited</th><th>Change</th></tr></thead><tbody id="vtBody"></tbody></table>
+        </section>
+
+        <section class="card" id="deadlines">
+          <div class="ch"><h2>Patch deadlines</h2><span class="sub">added in last 90 days</span></div>
+          <div class="budget" id="budget"></div>
+        </section>
       </div>
-      <div class="count" id="count"></div>
-      <div class="list" id="list"></div>
-      <div id="moreWrap"></div>
-    </section>
 
-    <div class="side">
-      <section class="card" id="stack">
-        <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.8 14.2 5 8 8.2 1.8 5z"/><path d="m1.8 8 6.2 3.2L14.2 8M1.8 11l6.2 3.2 6.2-3.2"/></svg>My stack</div>
-        <div class="pad">
-          <div class="stack-chips" id="chips"></div>
-          <form class="addrow" id="addForm">
-            <input type="text" id="addInput" placeholder="Add a vendor or product" aria-label="Add a vendor or product">
-            <button class="btn" type="submit">Add</button>
-          </form>
-          <p class="hint" id="exampleNote"></p>
-          <div class="local" id="local"></div>
-        </div>
-      </section>
+      <div class="col">
+        <section class="card" id="levelCard">
+          <div class="ch"><h2>Threat level</h2><span class="r"><span class="tag" id="lvlTag">–</span></span></div>
+          <div class="score">
+            <div class="gwrap"><svg viewBox="0 0 118 70" id="gauge"></svg><div class="gnum num" id="gnum">–</div></div>
+            <div class="lvl" id="lvlName">Loading</div>
+            <div class="desc" id="lvlDesc"></div>
+            <div class="desc" id="lvlDesc2"></div>
+          </div>
+          <div class="advice" id="advice"></div>
+        </section>
 
-      <section class="card">
-        <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13.5h12M4 11V7M8 11V3.5M12 11V6"/></svg>Most targeted vendors<span class="r">90 days</span></div>
-        <div class="pad" id="fronts"></div>
-      </section>
+        <section class="card" id="weekCard">
+          <div class="ch"><h2>This week</h2><span class="sub">vs. last week</span></div>
+          <div class="wk"><b class="num" id="wkN">–</b><span id="wkNote"></span></div>
+          <div class="chart"><svg id="wkSvg" height="130"></svg></div>
+          <div class="legend2" style="padding-bottom:14px"><span><i style="background:var(--orange)"></i>This week</span><span><i style="background:#5e5c58"></i>Last week</span></div>
+        </section>
 
-      <section class="card">
-        <div class="card-h"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.2v4M8 4.8v.2" stroke-linecap="round"/></svg>How the forecast works</div>
-        <div class="pad">
-          <p class="hint" style="margin:0 0 12px">This week's count is ranked against every 7-day stretch of the past year. Two or more ransomware-linked additions raise the level one step.</p>
-          <div class="key" id="key"></div>
-        </div>
-      </section>
+        <section class="card" id="advisories">
+          <div class="ch"><h2>Advisories</h2><span class="sub" id="advCount"></span><div class="r"><button class="link" type="button" id="advRangeBtn">Last 30 days</button></div></div>
+          <div class="filters">
+            <div class="seg" role="group" aria-label="Filter" id="advFilter">
+              <button type="button" data-f="all" aria-pressed="true">All</button><button type="button" data-f="r" aria-pressed="false">Ransomware</button><button type="button" data-f="m" aria-pressed="false">My stack</button>
+            </div>
+          </div>
+          <div class="search"><input type="search" id="search" placeholder="Search vendor, product or CVE" aria-label="Search advisories"></div>
+          <div class="list" id="list"></div>
+          <div id="moreWrap"></div>
+        </section>
+
+
+      </div>
     </div>
-  </div>
 
-  <footer id="footer"></footer>
-</main>
+    <footer><span>Data: <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities catalog</a>, refreshed every few hours. Patch-by dates are CISA's deadlines for U.S. federal agencies. A rough gauge, not a risk assessment of your environment.</span><a href="/api/forecast">Forecast API</a></footer>
+  </main>
+</div>
 
 <script src="/forecast.js"></script>
 <script>
@@ -323,33 +341,20 @@ const CF = window.CyberForecast, DAY = CF.DAY;
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = (s, o={month:"short",day:"numeric"}) => new Date(CF.dayIndex(s)*DAY).toLocaleDateString("en-US",{...o,timeZone:"UTC"});
-const LV = {"--clear":"#4c9dff","--cloudy":"#a0a6b0","--watch":"#f2c94c","--warn":"#eb5757"};
+const fmtI = (i, o={month:"short",day:"numeric"}) => new Date(i*DAY).toLocaleDateString("en-US",{...o,timeZone:"UTC"});
+const hash = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h>>>0) / 4294967296; };
+const AVC = ["#e2683a","#3fa59a","#6f68d8","#c2509a","#3b7dd8","#b98a2e","#4f9a5c","#8a6fbf"];
+const avc = s => AVC[Math.floor(hash(s)*AVC.length)];
+const LV = {"--clear":"#5aa2ff","--cloudy":"#a3a19c","--watch":"#f2c94c","--warn":"#ff7a3d"};
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/* Weather icons: clear / cloudy / rain / storm */
-const ICON = {
-  clear:`<svg viewBox="0 0 24 24" fill="none" stroke="#f2c94c" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>`,
-  cloudy:`<svg viewBox="0 0 24 24" fill="none" stroke="#b9bec7" stroke-width="1.7" stroke-linejoin="round"><path d="M7 18h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18z"/></svg>`,
-  rain:`<svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9bec7" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="#4c9dff" d="M8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/></svg>`,
-  storm:`<svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9bec7" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="#f2c94c" d="M12.5 15.5l-2 3.5h3l-2 3.5"/></svg>`,
-  severe:`<svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9bec7" d="M7 15h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 15z"/><path stroke="#eb5757" d="M12.5 15.5l-2 3.5h3l-2 3.5"/><path stroke="#4c9dff" d="M7.5 18l-1 2.5M17.5 18l-1 2.5"/></svg>`
-};
-const LEVEL_ICON = {clear:"clear", cloudy:"cloudy", watch:"storm", warn:"severe"};
-const dayIcon = (n, r) => r ? "severe" : n >= 5 ? "storm" : n >= 3 ? "rain" : n >= 1 ? "cloudy" : "clear";
-
-fetch("/api/kev")
-  .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-  .then(start)
-  .catch(err => {
-    $("level").textContent = "No connection";
-    $("summary").textContent = "Couldn't load the forecast. Check your connection and refresh. (" + err.message + ")";
-    $("updatedText").textContent = "Offline";
-  });
+fetch("/api/kev").then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(start)
+  .catch(err => { $("subgreet").textContent = "Couldn't load the forecast. Check your connection and refresh. (" + err.message + ")"; $("updText").textContent = "Offline"; });
 
 function start(DATA){
-const F = CF.compute(DATA.v, DATA.released);
-const V = F.vulns, L = F.level, lc = LV[L.color];
-document.documentElement.style.setProperty("--lvl", lc);
+const F = CF.compute(DATA.v, DATA.released), V = F.vulns, L = F.level, obs = CF.dayIndex(DATA.released);
+document.documentElement.style.setProperty("--lvl", LV[L.color]);
+const per = new Array(400).fill(0); V.forEach(x => { if (x.ago < 400) per[x.ago]++; });
 
 /* stack */
 const EXAMPLE = ["Microsoft","Cisco","Fortinet","Google Chrome"];
@@ -359,254 +364,247 @@ if (!Array.isArray(stack)) { stack = EXAMPLE.slice(); isExample = true; }
 const saveStack = () => { isExample = false; try { localStorage.setItem("cw-stack", JSON.stringify(stack)); } catch(e) {} };
 const mine = x => CF.matchesStack(x, stack);
 
-/* app bar */
-if (DATA.fetchedAt) {
-  $("updated").classList.remove("off");
-  $("updatedText").textContent = "Updated " + new Date(DATA.fetchedAt).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
-} else $("updatedText").textContent = "Offline copy";
+/* header */
+const hr = new Date().getHours();
+$("greet").textContent = (hr < 12 ? "Good morning" : hr < 18 ? "Good afternoon" : "Good evening");
+$("subgreet").textContent = `Here's the exploit forecast for ${fmt(DATA.released,{weekday:"long",month:"long",day:"numeric"})}.`;
+if (DATA.fetchedAt) { $("upd").classList.remove("off"); $("updText").textContent = "Updated " + new Date(DATA.fetchedAt).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}); }
+else $("updText").textContent = "Offline copy";
 
-/* now */
-const c7 = F.newLast7Days, r7 = F.ransomwareLast7Days;
-$("bigN").textContent = c7;
-$("condIcon").innerHTML = ICON[LEVEL_ICON[L.key]];
-$("level").textContent = L.name;
-$("summary").textContent = `Busier than ${F.percentileVsPastYear}% of weeks this year. ` +
-  (r7 ? `${r7} linked to ransomware.` : "None linked to ransomware.") +
-  (F.topVendorsLast7Days.length ? ` Most activity: ${F.topVendorsLast7Days.slice(0,2).map(t=>t.vendor).join(" and ")}.` : "");
-$("pill").hidden = false;
-$("pill").textContent = L.alert + (F.raisedForRansomware ? " · raised for ransomware" : "");
-$("advice").innerHTML = `<b>What to do.</b> ${esc(L.advice)}`;
+/* smooth path helper (monotone-ish Catmull-Rom) */
+function smooth(pts){
+  if (pts.length < 2) return "";
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length-1; i++) {
+    const p0 = pts[i-1]||pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2]||p2, t = .18;
+    const c1x = p1[0] + (p2[0]-p0[0])*t, c1y = p1[1] + (p2[1]-p0[1])*t, c2x = p2[0] - (p3[0]-p1[0])*t, c2y = p2[1] - (p3[1]-p1[1])*t;
+    d += ` C${c1x},${Math.min(Math.max(c1y,Math.min(p1[1],p2[1])),Math.max(p1[1],p2[1]))} ${c2x},${Math.min(Math.max(c2y,Math.min(p1[1],p2[1])),Math.max(p1[1],p2[1]))} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
 
-/* day strip */
-$("avg").textContent = `Avg ${F.dailyAverage.toFixed(1)} per day`;
-const rByDay = new Map(); V.forEach(x => { if (x.r) rByDay.set(x.ago, (rByDay.get(x.ago)||0)+1); });
-const dmax = Math.max(3, ...F.last14Days.map(d => d.count));
-$("days").innerHTML = F.last14Days.map(d => {
-  const w = d.ago === 0 ? "Latest" : new Date(CF.dayIndex(d.date)*DAY).toLocaleDateString("en-US",{weekday:"short",timeZone:"UTC"});
-  const r = rByDay.get(d.ago)||0, col = r ? "var(--red)" : d.count >= 5 ? "var(--orange)" : d.count >= 3 ? "var(--yellow)" : "var(--green)";
-  return `<div class="day${d.ago===0?" today":""}" title="${fmt(d.date)}: ${d.count} added${r?`, ${r} ransomware`:""}">
-    <span class="w">${w}</span>${ICON[dayIcon(d.count, r)]}
-    <span class="b"><i style="height:${d.count/dmax*100}%;background:${col}"></i></span>
-    <span class="c num${d.count?"":" z"}">${d.count}</span></div>`;
-}).join("");
-$("days").scrollLeft = 9999;
-
-/* tiles */
-function renderTiles(){
-  const m7 = V.filter(x => x.ago < 7 && mine(x)).length;
-  const p = F.percentileVsPastYear;
-  const ico = {
-    p:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 11a5.5 5.5 0 1 1 11 0"/><path d="M8 11l2.6-3.4" stroke-linecap="round"/></svg>`,
-    r:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>`,
-    d:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8.5" r="5.5"/><path d="M8 5.5v3l2 1.5M6 1.5h4" stroke-linecap="round"/></svg>`,
-    s:`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.8 14.2 5 8 8.2 1.8 5z"/><path d="m1.8 8 6.2 3.2L14.2 8"/></svg>`
+/* ---------- trend (cumulative area, like a balance chart) ---------- */
+let trD = 90;
+function drawTrend(){
+  const svg = $("trSvg"), W = svg.clientWidth || 700, H = 230, pl = 8, pr = 40, pt = 14, pb = 26;
+  const series = []; let run = 0;
+  for (let a = trD-1; a >= 0; a--) { run += per[a]; series.push({a, v: run, n: per[a]}); }
+  const total = run, prev = per.slice(trD, trD*2).reduce((s,n) => s+n, 0);
+  $("trTotal").textContent = total;
+  const pct = prev ? Math.round((total-prev)/prev*100) : 0;
+  const dEl = $("trDelta"); dEl.className = "delta " + (pct > 2 ? "up" : pct < -2 ? "down" : "flat");
+  dEl.textContent = (pct > 0 ? "↑ " : pct < 0 ? "↓ " : "") + Math.abs(pct) + "%";
+  $("trNote").textContent = `vs. previous ${trD===365?"year":trD+" days"} (${prev})`;
+  const max = Math.max(4, total), x = i => pl + (W-pl-pr) * i/(series.length-1), y = v => pt + (H-pt-pb) * (1 - v/max);
+  const pts = series.map((s,i) => [x(i), y(s.v)]);
+  const line = smooth(pts), area = line + ` L${x(series.length-1)},${H-pb} L${x(0)},${H-pb} Z`;
+  const ticks = [0, Math.round(max/2), max];
+  let s = `<defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3fc1b0" stop-opacity=".38"/><stop offset="1" stop-color="#3fc1b0" stop-opacity="0"/></linearGradient></defs>`;
+  ticks.forEach(t => s += `<line x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}" stroke="#26262b"/><text x="${W-pr+8}" y="${y(t)+4}">${t}</text>`);
+  const nlab = W < 500 ? 3 : 5;
+  for (let k = 0; k < nlab; k++) { const i = Math.round(k*(series.length-1)/(nlab-1)); s += `<text x="${x(i)}" y="${H-6}" text-anchor="${k===0?"start":k===nlab-1?"end":"middle"}">${fmtI(obs - series[i].a)}</text>`; }
+  s += `<path d="${area}" fill="url(#tg)"/><path d="${line}" fill="none" stroke="#3fc1b0" stroke-width="2"/>`;
+  s += `<circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="4" fill="#3fc1b0" stroke="#1a1a1d" stroke-width="2"/>`;
+  s += `<line id="trHover" x1="0" x2="0" y1="${pt}" y2="${H-pb}" stroke="#4a4a50" stroke-dasharray="3 3" opacity="0"/><circle id="trDot" r="4" fill="#fff" opacity="0"/>`;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.innerHTML = s;
+  svg.onmousemove = ev => {
+    const r = svg.getBoundingClientRect(), mx = ev.clientX - r.left;
+    const i = Math.max(0, Math.min(series.length-1, Math.round((mx-pl)/(W-pl-pr)*(series.length-1))));
+    const hv = $("trHover"), dt = $("trDot"), tip = $("trTip");
+    hv.setAttribute("x1", x(i)); hv.setAttribute("x2", x(i)); hv.setAttribute("opacity", 1);
+    dt.setAttribute("cx", x(i)); dt.setAttribute("cy", y(series[i].v)); dt.setAttribute("opacity", 1);
+    tip.innerHTML = `<b>${series[i].v}</b> <span>total · ${series[i].n} added ${fmtI(obs - series[i].a)}</span>`;
+    tip.style.left = (x(i)/W*r.width + 10) + "px"; tip.style.top = (y(series[i].v)/H*r.height + 8) + "px"; tip.classList.add("show");
   };
-  $("tiles").innerHTML = `
-    <div class="card tile"><div class="card-h">${ico.p}Exploit pressure</div><div class="v num">${p}<small>th percentile</small></div><div class="gauge"><i style="left:${p}%"></i></div><div class="d">This week vs. every week in the past year.</div></div>
-    <div class="card tile"><div class="card-h">${ico.r}Ransomware</div><div class="v num">${r7}</div><div class="d">${r7 ? `${r7===1?"Addition":"Additions"} this week tied to ransomware campaigns.` : "No additions this week are tied to known ransomware campaigns."}</div></div>
-    <div class="card tile"><div class="card-h">${ico.d}Patch deadlines</div><div class="v num">${F.deadlinesNext14Days}</div><div class="d">CISA patch-by dates falling in the next 14 days.</div></div>
-    <div class="card tile"><div class="card-h">${ico.s}Your stack</div><div class="v num">${m7}</div><div class="d">${m7 ? `New this week matching ${m7===1?"a product":"products"} you run.` : "Nothing new this week matches what you run."}</div></div>`;
+  svg.onmouseleave = () => { $("trTip").classList.remove("show"); const hv = $("trHover"); if (hv) hv.setAttribute("opacity",0); const dt = $("trDot"); if (dt) dt.setAttribute("opacity",0); };
+}
+$("trRange").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; trD = +b.dataset.d;
+  [...$("trRange").children].forEach(o => o.setAttribute("aria-pressed", o === b)); drawTrend(); });
+
+/* ---------- threat score gauge ---------- */
+const p = F.percentileVsPastYear;
+$("gnum").textContent = p;
+$("lvlTag").textContent = L.alert;
+$("lvlName").innerHTML = `${esc(L.name)} <em>${F.raisedForRansomware ? "Raised" : "Live"}</em>`;
+$("lvlDesc").textContent = `${p}th percentile vs. the past year`;
+$("lvlDesc2").textContent = F.ransomwareLast7Days ? `${F.ransomwareLast7Days} ransomware-linked this week` : "No ransomware links this week";
+$("advice").innerHTML = `<b>What to do:</b> ${esc(L.advice)}`;
+{ // segmented semicircle
+  const cx = 59, cy = 62, r = 50, segs = 24; let s = "";
+  for (let i = 0; i < segs; i++) {
+    const a0 = Math.PI + i/segs*Math.PI + .02, a1 = Math.PI + (i+1)/segs*Math.PI - .02, t = (i+.5)/segs;
+    const on = t*100 <= p, col = t < .35 ? "#3ccf7a" : t < .6 ? "#f2c94c" : t < .85 ? "#ff9a3d" : "#f0574f";
+    s += `<path d="M${cx+Math.cos(a0)*r},${cy+Math.sin(a0)*r} A${r},${r} 0 0 1 ${cx+Math.cos(a1)*r},${cy+Math.sin(a1)*r}" stroke="${on?col:"#2c2c31"}" stroke-width="9" fill="none"/>`;
+  }
+  $("gauge").innerHTML = s;
+}
+
+/* ---------- week vs last week ---------- */
+const thisW = [], lastW = []; let a1 = 0, a2 = 0;
+for (let i = 6; i >= 0; i--) { a1 += per[i]; a2 += per[i+7]; thisW.push(a1); lastW.push(a2); }
+$("wkN").textContent = F.newLast7Days;
+const dW = F.newLast7Days - a2;
+$("wkNote").innerHTML = `added · <span style="color:${dW>0?"var(--red)":dW<0?"var(--green)":"var(--muted)"}">${dW>0?"+":""}${dW}</span> vs. last week (${a2})`;
+function drawWeek(){
+  const svg = $("wkSvg"), W = svg.clientWidth || 320, H = 130, pl = 6, pr = 6, pt = 10, pb = 20;
+  const max = Math.max(3, ...thisW, ...lastW), x = i => pl + (W-pl-pr)*i/6, y = v => pt + (H-pt-pb)*(1 - v/max);
+  const p1 = thisW.map((v,i) => [x(i), y(v)]), p2 = lastW.map((v,i) => [x(i), y(v)]);
+  const l1 = smooth(p1), l2 = smooth(p2);
+  let s = `<defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a3d" stop-opacity=".45"/><stop offset="1" stop-color="#ff7a3d" stop-opacity="0"/></linearGradient></defs>`;
+  s += `<path d="${l1} L${x(6)},${H-pb} L${x(0)},${H-pb} Z" fill="url(#wg)"/><path d="${l2}" fill="none" stroke="#5e5c58" stroke-width="1.6" stroke-dasharray="4 4"/><path d="${l1}" fill="none" stroke="#ff7a3d" stroke-width="2"/>`;
+  s += `<circle cx="${x(6)}" cy="${y(thisW[6])}" r="4" fill="#ff7a3d" stroke="#1a1a1d" stroke-width="2"/>`;
+  for (let i = 0; i < 7; i++) s += `<text x="${x(i)}" y="${H-4}" text-anchor="${i===0?"start":i===6?"end":"middle"}">${fmtI(obs-6+i,{weekday:"narrow"})}</text>`;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.innerHTML = s;
 }
 
 /* ---------- radar ---------- */
 const stage = $("stage"), cv = $("radar"), ctx = cv.getContext("2d");
-const hash = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h>>>0) / 4294967296; };
 const POOL = V.filter(x => x.ago < 60).map(x => ({ x, ang: hash(x.v)*Math.PI*2 + (hash(x.c)-.5)*.5, j: hash(x.c+"r"), w: x.r ? 1.7 : 1 }));
-// radar palette LUT (NEXRAD-like, tuned for a dark base)
-const STOPS = [[0,[0,0,0,0]],[.10,[29,122,85,90]],[.22,[60,207,122,170]],[.42,[242,201,76,210]],[.6,[242,153,74,230]],[.78,[235,87,87,240]],[1,[212,90,216,250]]];
+const STOPS = [[0,[0,0,0,0]],[.10,[29,122,85,90]],[.22,[60,207,122,170]],[.42,[242,201,76,210]],[.6,[255,154,61,230]],[.78,[240,87,79,240]],[1,[212,90,216,250]]];
 const LUT = new Uint8ClampedArray(256*4);
 for (let i = 0; i < 256; i++) { const t = i/255; let k = 0; while (k < STOPS.length-2 && t > STOPS[k+1][0]) k++;
   const [t0,a] = STOPS[k], [t1,b] = STOPS[k+1], f = Math.min(1, Math.max(0, (t-t0)/(t1-t0)));
   for (let c = 0; c < 4; c++) LUT[i*4+c] = a[c] + (b[c]-a[c])*f; }
-const HN = 260, heat = document.createElement("canvas"); heat.width = heat.height = HN;
+const HN = 240, heat = document.createElement("canvas"); heat.width = heat.height = HN;
 const hctx = heat.getContext("2d", { willReadFrequently: true });
-const paint = document.createElement("canvas"); paint.width = paint.height = HN;
-const pctx = paint.getContext("2d");
-// soft blob sprite
+const paint = document.createElement("canvas"); paint.width = paint.height = HN; const pctx = paint.getContext("2d");
 const SPR = 64, spr = document.createElement("canvas"); spr.width = spr.height = SPR;
 { const g = spr.getContext("2d"), rg = g.createRadialGradient(SPR/2,SPR/2,0,SPR/2,SPR/2,SPR/2);
-  rg.addColorStop(0,"rgba(255,255,255,.55)"); rg.addColorStop(.45,"rgba(255,255,255,.22)"); rg.addColorStop(1,"rgba(255,255,255,0)");
-  g.fillStyle = rg; g.fillRect(0,0,SPR,SPR); }
-
+  rg.addColorStop(0,"rgba(255,255,255,.55)"); rg.addColorStop(.45,"rgba(255,255,255,.22)"); rg.addColorStop(1,"rgba(255,255,255,0)"); g.fillStyle = rg; g.fillRect(0,0,SPR,SPR); }
 let endAgo = 0, W = 0, H = 0, dpr = 1, cx = 0, cy = 0, R = 0, placed = [];
-function size(){
-  dpr = Math.min(2, devicePixelRatio || 1);
-  W = stage.clientWidth; H = stage.clientHeight;
-  cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
-  cx = W/2; cy = H/2 + 10; R = Math.min(W, H)/2 - 34;
-  draw();
-}
-function cells(e){ // cells inside the 30-day window ending e days ago
-  return POOL.filter(b => b.x.ago >= e && b.x.ago < e + 30).map(b => {
-    const rad = (b.x.ago - e + .35 + b.j*.6) / 32;
-    return { b, px: Math.cos(b.ang)*rad, py: Math.sin(b.ang)*rad };
-  });
-}
-function draw(){
+function size(){ dpr = Math.min(2, devicePixelRatio||1); W = stage.clientWidth; H = stage.clientHeight; cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); cx = W/2; cy = H/2; R = Math.min(W,H)/2 - 16; drawRadar(); }
+function cells(e){ return POOL.filter(b => b.x.ago >= e && b.x.ago < e+30).map(b => { const rad = (b.x.ago - e + .35 + b.j*.6)/32; return { b, px: Math.cos(b.ang)*rad, py: Math.sin(b.ang)*rad }; }); }
+const FONT = getComputedStyle(document.body).fontFamily;
+function drawRadar(){
+  if (!W) return;
   const e = endAgo, list = cells(e);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,W,H);
-  // base map: faint grid
-  ctx.fillStyle = "#0a0b0d"; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle = "rgba(255,255,255,.035)"; ctx.lineWidth = 1;
-  for (let x = cx % 40; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for (let y = cy % 40; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  // heat field
-  hctx.globalCompositeOperation = "source-over"; hctx.clearRect(0,0,HN,HN);
-  hctx.globalCompositeOperation = "lighter";
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.fillStyle = "#0c0c0e"; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = "rgba(255,255,255,.03)"; ctx.lineWidth = 1;
+  for (let x = cx % 32; x < W; x += 32) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = cy % 32; y < H; y += 32) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  hctx.globalCompositeOperation = "source-over"; hctx.clearRect(0,0,HN,HN); hctx.globalCompositeOperation = "lighter";
   const hs = HN/2 - 2;
-  list.forEach(({b,px,py}) => {
-    const s = (b.x.r ? 54 : 44) * (HN/260);
-    for (let k = 0; k < 3; k++) { // three offset puffs per cell for an organic shape
-      const ox = (hash(b.x.c+k)-.5)*s*.55, oy = (hash(b.x.c+"y"+k)-.5)*s*.55;
-      hctx.globalAlpha = b.w * (k ? .26 : .42);
-      hctx.drawImage(spr, HN/2 + px*hs + ox - s/2, HN/2 + py*hs + oy - s/2, s, s);
-    }
-  });
+  list.forEach(({b,px,py}) => { const s = (b.x.r ? 54 : 44) * (HN/260);
+    for (let k = 0; k < 3; k++) { const ox = (hash(b.x.c+k)-.5)*s*.55, oy = (hash(b.x.c+"y"+k)-.5)*s*.55;
+      hctx.globalAlpha = b.w * (k ? .26 : .42); hctx.drawImage(spr, HN/2 + px*hs + ox - s/2, HN/2 + py*hs + oy - s/2, s, s); } });
   hctx.globalAlpha = 1;
   const img = hctx.getImageData(0,0,HN,HN), d = img.data;
-  for (let i = 0; i < d.length; i += 4) { const v = Math.min(255, d[i+3] * 1.15) | 0; const o = v*4; d[i]=LUT[o]; d[i+1]=LUT[o+1]; d[i+2]=LUT[o+2]; d[i+3]=LUT[o+3]; }
+  for (let i = 0; i < d.length; i += 4) { const o = (Math.min(255, d[i+3]*1.15)|0)*4; d[i]=LUT[o]; d[i+1]=LUT[o+1]; d[i+2]=LUT[o+2]; d[i+3]=LUT[o+3]; }
   pctx.putImageData(img,0,0);
-  ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(paint, cx - R*(HN/2)/hs, cy - R*(HN/2)/hs, R*HN/hs, R*HN/hs);
-  ctx.restore();
-  // range rings + bearings
-  ctx.strokeStyle = "rgba(255,255,255,.10)"; ctx.lineWidth = 1;
-  [10,20,30].forEach(dd => { ctx.beginPath(); ctx.arc(cx,cy,R*dd/30,0,Math.PI*2); ctx.stroke(); });
-  ctx.strokeStyle = "rgba(255,255,255,.05)";
-  for (let a = 0; a < 12; a++) { const t = a/12*Math.PI*2; ctx.beginPath(); ctx.moveTo(cx+Math.cos(t)*R*.06, cy+Math.sin(t)*R*.06); ctx.lineTo(cx+Math.cos(t)*R, cy+Math.sin(t)*R); ctx.stroke(); }
-  ctx.font = `500 11px ${getComputedStyle(document.body).fontFamily}`; ctx.fillStyle = "rgba(255,255,255,.38)"; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
-  [10,20,30].forEach(dd => ctx.fillText(dd + "d", cx + 5, cy - R*dd/30 - 4));
-  // vendor labels, like city names on a map
-  const groups = {};
-  list.forEach(c => { const k = c.b.x.v; (groups[k] = groups[k] || {n:0,x:0,y:0,r:0}); groups[k].n++; groups[k].x += c.px; groups[k].y += c.py; groups[k].r += c.b.x.r; });
-  const top = Object.entries(groups).sort((a,b) => b[1].n - a[1].n).slice(0, 7);
-  const used = [];
-  ctx.font = `600 12px ${getComputedStyle(document.body).fontFamily}`;
-  top.forEach(([name,g]) => {
-    let x = cx + g.x/g.n*R, y = cy + g.y/g.n*R;
-    const label = name.length > 16 ? name.slice(0,15)+"…" : name, tw = ctx.measureText(label).width;
-    let lx = x + 8, ly = y + 4;
-    for (const u of used) if (Math.abs(u.y - ly) < 15 && lx < u.x + u.w && lx + tw > u.x) ly = u.y + 16;
-    if (lx + tw > W - 8) lx = x - 8 - tw;
-    used.push({x:lx,y:ly,w:tw});
-    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x,y,2.6,0,Math.PI*2); ctx.fill();
-    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(10,11,13,.85)"; ctx.strokeText(label, lx, ly);
-    ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.fillText(label, lx, ly);
-  });
-  // your stack markers
-  ctx.strokeStyle = "#4c9dff"; ctx.lineWidth = 1.6;
-  list.forEach(c => { if (mine(c.b.x)) { ctx.beginPath(); ctx.arc(cx + c.px*R, cy + c.py*R, 7, 0, Math.PI*2); ctx.stroke(); } });
-  // center
-  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx,cy,4,0,Math.PI*2); ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(cx,cy,9,0,Math.PI*2); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(paint, cx - R*(HN/2)/hs, cy - R*(HN/2)/hs, R*HN/hs, R*HN/hs); ctx.restore();
+  ctx.strokeStyle = "rgba(255,255,255,.09)"; [10,20,30].forEach(dd => { ctx.beginPath(); ctx.arc(cx,cy,R*dd/32*1.0667,0,Math.PI*2); ctx.stroke(); });
+  ctx.font = `500 10.5px ${FONT}`; ctx.fillStyle = "rgba(255,255,255,.35)"; [10,20,30].forEach(dd => ctx.fillText(dd+"d", cx+4, cy - R*dd/30 - 3));
+  const groups = {}; list.forEach(c => { const k = c.b.x.v; (groups[k] = groups[k] || {n:0,x:0,y:0}); groups[k].n++; groups[k].x += c.px; groups[k].y += c.py; });
+  const used = []; ctx.font = `600 11.5px ${FONT}`;
+  Object.entries(groups).sort((a,b) => b[1].n - a[1].n).slice(0, 6).forEach(([name,g]) => {
+    const x = cx + g.x/g.n*R, y = cy + g.y/g.n*R, label = name.length > 14 ? name.slice(0,13)+"…" : name, tw = ctx.measureText(label).width;
+    let lx = x + 7, ly = y + 4; for (const u of used) if (Math.abs(u.y-ly) < 14 && lx < u.x+u.w && lx+tw > u.x) ly = u.y + 15;
+    if (lx + tw > W - 6) lx = x - 7 - tw; used.push({x:lx,y:ly,w:tw});
+    ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x,y,2.4,0,Math.PI*2); ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = "rgba(12,12,14,.85)"; ctx.strokeText(label,lx,ly); ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.fillText(label,lx,ly); });
+  ctx.strokeStyle = "#5aa2ff"; ctx.lineWidth = 1.5; list.forEach(c => { if (mine(c.b.x)) { ctx.beginPath(); ctx.arc(cx+c.px*R, cy+c.py*R, 6.5, 0, Math.PI*2); ctx.stroke(); } });
+  ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(cx,cy,3.5,0,Math.PI*2); ctx.fill();
   placed = list;
-  // labels
-  const endDay = CF.dayIndex(DATA.released) - Math.round(e);
-  const dl = new Date(endDay*DAY).toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
-  $("radarDate").innerHTML = Math.round(e) === 0 ? `<b>${list.length}</b> in 30 days · latest` : `<b>${list.length}</b> in 30 days to ${dl}`;
-  $("scrubNow").textContent = Math.round(e) === 0 ? "Latest · " + dl : dl;
+  const end = obs - Math.round(e);
+  $("rDate").textContent = Math.round(e) === 0 ? "Latest" : fmtI(end);
+  $("rSub").textContent = `${list.length} in 30 days to ${fmtI(end)}`;
 }
-// scrub + play
-const scrub = $("scrub"), playBtn = $("play");
-let playing = false, raf = 0;
+const scrub = $("scrub"), playBtn = $("play"); let playing = false, raf = 0;
 const PLAY = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg>`, PAUSE = `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>`;
-scrub.addEventListener("input", () => { stop(); endAgo = 29 - +scrub.value; draw(); });
+scrub.addEventListener("input", () => { stop(); endAgo = 29 - +scrub.value; drawRadar(); });
 function stop(){ playing = false; cancelAnimationFrame(raf); playBtn.innerHTML = PLAY; playBtn.setAttribute("aria-label","Play the last 30 days"); }
-function play(){
-  if (endAgo <= 0.01) endAgo = 29;
-  playing = true; playBtn.innerHTML = PAUSE; playBtn.setAttribute("aria-label","Pause");
-  let last = performance.now();
-  const step = t => { if (!playing) return;
-    endAgo = Math.max(0, endAgo - (t-last)/1000 * 6); last = t;
-    scrub.value = Math.round(29 - endAgo); draw();
-    if (endAgo <= 0) { stop(); return; }
-    raf = requestAnimationFrame(step); };
-  raf = requestAnimationFrame(step);
-}
+function play(){ if (endAgo <= .01) endAgo = 29; playing = true; playBtn.innerHTML = PAUSE; playBtn.setAttribute("aria-label","Pause"); let last = performance.now();
+  const step = t => { if (!playing) return; endAgo = Math.max(0, endAgo - (t-last)/1000*6); last = t; scrub.value = Math.round(29-endAgo); drawRadar(); if (endAgo <= 0) { stop(); return; } raf = requestAnimationFrame(step); };
+  raf = requestAnimationFrame(step); }
 playBtn.addEventListener("click", () => playing ? stop() : play());
-// hover tooltip
-const tip = $("tip");
-cv.addEventListener("mousemove", ev => {
-  const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top;
-  let best = null, bd = 14*14;
+const rtip = $("rtip");
+cv.addEventListener("mousemove", ev => { const r = cv.getBoundingClientRect(), mx = ev.clientX - r.left, my = ev.clientY - r.top; let best = null, bd = 13*13;
   placed.forEach(c => { const dx = cx + c.px*R - mx, dy = cy + c.py*R - my, dd = dx*dx+dy*dy; if (dd < bd) { bd = dd; best = c; } });
-  if (!best) { tip.classList.remove("show"); return; }
-  const x = best.b.x;
-  tip.innerHTML = `<b>${esc(x.v)} ${esc(x.p)}</b><span>${esc(x.c)} · added ${fmt(x.a)}${x.r ? " · ransomware" : ""}</span>`;
-  const tx = Math.min(mx + 14, r.width - 270), ty = Math.max(8, my - 54);
-  tip.style.left = tx + "px"; tip.style.top = ty + "px"; tip.classList.add("show");
-});
-cv.addEventListener("mouseleave", () => tip.classList.remove("show"));
+  if (!best) { rtip.classList.remove("show"); return; } const x = best.b.x;
+  rtip.innerHTML = `<b>${esc(x.v)} ${esc(x.p)}</b><span>${esc(x.c)} · ${fmt(x.a)}${x.r?" · ransomware":""}</span>`;
+  rtip.style.left = Math.min(mx+12, r.width-250) + "px"; rtip.style.top = Math.max(6, my-50) + "px"; rtip.classList.add("show"); });
+cv.addEventListener("mouseleave", () => rtip.classList.remove("show"));
 new ResizeObserver(size).observe(stage);
 
-/* stack */
+/* ---------- my stack as goal bars ---------- */
 function renderStack(){
-  $("chips").innerHTML = stack.map((t,i) => `<span class="sc">${esc(t)}<button type="button" data-i="${i}" aria-label="Remove ${esc(t)}">×</button></span>`).join("") || `<span class="hint" style="margin:0">Nothing added yet.</span>`;
-  $("exampleNote").textContent = isExample ? "These are examples. Replace them with what you run; your list stays in this browser." : "Saved in this browser.";
+  const rows = stack.map(t => ({ t, n: V.filter(x => x.ago < 30 && CF.matchesStack(x,[t])).length, n7: V.filter(x => x.ago < 7 && CF.matchesStack(x,[t])).length }));
+  const mx = Math.max(3, ...rows.map(r => r.n));
+  $("goals").innerHTML = rows.map((r,i) => `<div class="goal"><span class="ic" style="background:${avc(r.t)}">${esc(r.t.trim()[0]||"?").toUpperCase()}</span>
+    <span class="n">${esc(r.t)}</span><span class="v num">${r.n} ${r.n===1?"match":"matches"}${r.n7?` · <span style="color:var(--orange)">${r.n7} new</span>`:""}<button class="rm" type="button" data-i="${i}" aria-label="Remove ${esc(r.t)}">×</button></span>
+    <span class="bar"><i style="width:${Math.max(r.n?6:0, r.n/mx*100)}%;background:${r.n7?"var(--orange)":"var(--teal)"}"></i></span></div>`).join("") || `<p class="empty">Add the vendors and products you run.</p>`;
+  $("exampleNote").textContent = isExample ? "Examples shown. Replace them with what you run; saved in this browser." : "Saved in this browser.";
   const lf = CF.localForecast(F, stack), n = lf.nextDeadline;
-  $("local").innerHTML =
-    `<div class="full"><div class="k">Your forecast</div><div class="v">${lf.name}</div></div>` +
-    `<div><div class="k">This week</div><div class="v num">${lf.matchesLast7Days} <small>${lf.matchesLast7Days===1?"match":"matches"}</small></div></div>` +
-    `<div><div class="k">30 days</div><div class="v num">${lf.matchesLast30Days} <small>${lf.matchesLast30Days===1?"match":"matches"}</small></div></div>` +
-    (n ? `<div class="full"><div class="k">Next deadline · ${fmt(n.d)}</div><div class="v" style="font-size:13.5px;font-weight:500">${esc(n.v)} ${esc(n.p)}</div></div>` : "");
-  renderTiles(); renderList(); if (W) draw();
+  $("local").innerHTML = `<span>Your forecast<br><b>${lf.name}</b></span><span style="text-align:right">${n ? `Next deadline<br><b>${fmt(n.d)}</b>` : "No open deadlines"}</span>`;
+  renderList(); drawRadar();
 }
-$("chips").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (!b) return; stack.splice(+b.dataset.i,1); saveStack(); renderStack(); });
+$("goals").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (!b) return; stack.splice(+b.dataset.i,1); saveStack(); renderStack(); });
 $("addForm").addEventListener("submit", e => { e.preventDefault(); const inp = $("addInput"), v = inp.value.trim(); if (!v) return;
   if (!stack.some(t => t.toLowerCase() === v.toLowerCase())) stack.push(v); inp.value = ""; saveStack(); renderStack(); });
 
-/* vendors */
-const fr = F.stormFronts90Days, fmax = fr.length ? fr[0].count : 1;
-$("fronts").innerHTML = fr.map(({vendor,count}) => `<div class="front"><span class="n" title="${esc(vendor)}">${esc(vendor)}</span><span class="b"><i style="width:${count/fmax*100}%"></i></span><span class="c num">${count}</span></div>`).join("");
+/* ---------- vendors table ---------- */
+{
+  const now90 = {}, prev90 = {};
+  V.forEach(x => { if (x.ago < 90) now90[x.v] = (now90[x.v]||0)+1; else if (x.ago < 180) prev90[x.v] = (prev90[x.v]||0)+1; });
+  const top = Object.entries(now90).sort((a,b) => b[1]-a[1]).slice(0, 6);
+  $("vtBody").innerHTML = top.map(([v,n]) => {
+    const wk = new Array(12).fill(0); V.forEach(x => { if (x.v === v && x.ago < 84) wk[11 - Math.floor(x.ago/7)]++; });
+    const m = Math.max(1, ...wk), pts = wk.map((c,i) => [4 + i*82/11, 21 - c/m*17]);
+    const pv = prev90[v]||0, ch = n - pv;
+    return `<tr><td><span class="vn"><i style="background:${avc(v)}">${esc(v[0])}</i>${esc(v)}</span></td>
+      <td class="spark"><svg viewBox="0 0 90 24"><path d="${smooth(pts)}" fill="none" stroke="${ch>0?"#f0574f":"#3fc1b0"}" stroke-width="1.6"/></svg></td>
+      <td class="num">${n}</td><td class="num" style="color:${ch>0?"var(--red)":ch<0?"var(--green)":"var(--muted)"}">${ch>0?"+":""}${ch}</td></tr>`;
+  }).join("");
+}
 
-/* key */
-$("key").innerHTML = CF.LEVELS.map(l => `<div class="${l.key===L.key?"on":""}">${ICON[LEVEL_ICON[l.key]]}<span><b>${esc(l.name)}</b><br>${esc(l.advice)}</span></div>`).join("");
+/* ---------- deadlines budget ---------- */
+{
+  const set = V.filter(x => x.ago < 90);
+  const over = set.filter(x => x.dueIn < 0).length, w1 = set.filter(x => x.dueIn >= 0 && x.dueIn <= 7).length,
+        w2 = set.filter(x => x.dueIn > 7 && x.dueIn <= 14).length, later = set.filter(x => x.dueIn > 14).length, tot = Math.max(1, set.length);
+  const rows = [["Past deadline", over, "#5e5c58"], ["Due in 7 days", w1, "#ff7a3d"], ["Due in 8–14 days", w2, "#f2c94c"], ["Later", later, "#3fc1b0"]];
+  $("budget").innerHTML = `<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)"><span><b style="color:var(--text);font-size:15px">${w1}</b> due this week</span><span>${set.length} total</span></div>
+    <div class="stackbar">${rows.map(r => r[1] ? `<i style="width:${r[1]/tot*100}%;background:${r[2]}" title="${r[0]}: ${r[1]}"></i>` : "").join("")}</div>
+    ${rows.map(r => `<div class="brow"><span class="sw" style="background:${r[2]}"></span><span>${r[0]}</span><span class="c num">${r[1]}</span></div>`).join("")}`;
+}
 
-/* advisories */
-const AVC = ["#3b6fd4","#7b5cd6","#c2509a","#d0663e","#3c9a6b","#2f8fa8","#9a7b2f","#5f6b7a"];
-let range = 30, shown = 20, fMine = false, fR = false;
+/* ---------- advisories ---------- */
+let filt = "all", range = 30, shown = 8;
+const ranges = [7,30,90];
+$("advRangeBtn").addEventListener("click", () => { range = ranges[(ranges.indexOf(range)+1) % ranges.length]; $("advRangeBtn").textContent = `Last ${range} days`; shown = 8; renderList(); });
 function renderList(){
   const q = $("search").value.trim().toLowerCase();
-  const list = V.filter(x => x.ago < range && (!fMine || mine(x)) && (!fR || x.r) && (!q || (x.c+" "+x.v+" "+x.p+" "+x.n).toLowerCase().includes(q)));
-  $("count").textContent = `${list.length} ${list.length===1?"advisory":"advisories"}`;
+  const list = V.filter(x => x.ago < range && (filt === "all" || (filt === "r" ? x.r : mine(x))) && (!q || (x.c+" "+x.v+" "+x.p+" "+x.n).toLowerCase().includes(q)));
+  $("advCount").textContent = `${list.length} total`;
+  $("navCount").textContent = V.filter(x => x.ago < 7).length || "";
   $("list").innerHTML = list.slice(0, shown).map(x => {
-    const m = mine(x), col = AVC[Math.floor(hash(x.v)*AVC.length)];
-    const due = x.dueIn < 0 ? `<div class="due past"><b>Overdue</b>${fmt(x.d)}</div>`
-      : `<div class="due${x.dueIn<=7?" soon":""}"><b>${x.dueIn===0?"Due today":x.dueIn===1?"Due tomorrow":`In ${x.dueIn} days`}</b>${fmt(x.d)}</div>`;
-    return `<div class="item" tabindex="0" role="button" aria-expanded="false">
-      <div class="av" style="background:${col}">${esc(x.v.trim()[0]||"?")}</div>
-      <div class="t">${esc(x.v)} ${esc(x.p)}</div>
-      ${due}
-      <div class="s"><span class="cve">${esc(x.c)}</span><span>· Added ${fmt(x.a)}</span>${x.r?'<span class="tag r">Ransomware</span>':""}${m?'<span class="tag m">Your stack</span>':""}</div>
-      <div class="x">${esc(x.s)}<br><a href="https://nvd.nist.gov/vuln/detail/${esc(x.c)}" target="_blank" rel="noopener">View on NVD ↗</a></div>
-    </div>`;
-  }).join("") || `<p class="hint" style="padding:16px">No advisories match. Try a longer range or clear the search.</p>`;
-  $("moreWrap").innerHTML = list.length > shown ? `<button class="more" type="button" id="moreBtn">Show ${Math.min(20, list.length-shown)} more</button>` : "";
+    const m = mine(x);
+    const r = x.dueIn < 0 ? `<div class="r past"><b>Overdue</b>${fmt(x.d)}</div>` : `<div class="r${x.dueIn<=7?" soon":""}"><b>${x.dueIn===0?"Today":x.dueIn===1?"Tomorrow":x.dueIn+" days"}</b>due ${fmt(x.d)}</div>`;
+    return `<div class="li" tabindex="0" role="button" aria-expanded="false"><span class="av" style="background:${avc(x.v)}">${esc(x.v.trim()[0]||"?")}</span>
+      <span class="t">${esc(x.v)} ${esc(x.p)}</span>${r}
+      <span class="s"><span class="cve">${esc(x.c)}</span>${x.r?'<span class="tag r">Ransomware</span>':""}${m?'<span class="tag m">My stack</span>':""}</span>
+      <div class="x">${esc(x.s)}<br><a href="https://nvd.nist.gov/vuln/detail/${esc(x.c)}" target="_blank" rel="noopener">View on NVD ↗</a></div></div>`;
+  }).join("") || `<p class="empty">No advisories match.</p>`;
+  $("moreWrap").innerHTML = list.length > shown ? `<button class="link more" type="button" id="moreBtn">Show ${Math.min(10, list.length-shown)} more</button>` : "";
 }
-const toggle = it => { const o = it.classList.toggle("open"); it.setAttribute("aria-expanded", o); };
-$("list").addEventListener("click", e => { if (e.target.closest("a")) return; const it = e.target.closest(".item"); if (it) toggle(it); });
-$("list").addEventListener("keydown", e => { const it = e.target.closest(".item"); if (it && (e.key==="Enter"||e.key===" ")) { e.preventDefault(); toggle(it); } });
-$("moreWrap").addEventListener("click", e => { if (e.target.id === "moreBtn") { shown += 20; renderList(); } });
-document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => { range = +b.dataset.range; shown = 20;
-  document.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", o === b)); renderList(); }));
-$("fMine").addEventListener("click", e => { fMine = !fMine; e.currentTarget.setAttribute("aria-pressed", fMine); shown = 20; renderList(); });
-$("fRansom").addEventListener("click", e => { fR = !fR; e.currentTarget.setAttribute("aria-pressed", fR); shown = 20; renderList(); });
-$("search").addEventListener("input", () => { shown = 20; renderList(); });
+const tog = it => { const o = it.classList.toggle("open"); it.setAttribute("aria-expanded", o); };
+$("list").addEventListener("click", e => { if (e.target.closest("a")) return; const it = e.target.closest(".li"); if (it) tog(it); });
+$("list").addEventListener("keydown", e => { const it = e.target.closest(".li"); if (it && (e.key==="Enter"||e.key===" ")) { e.preventDefault(); tog(it); } });
+$("moreWrap").addEventListener("click", e => { if (e.target.id === "moreBtn") { shown += 10; renderList(); } });
+$("advFilter").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; filt = b.dataset.f; shown = 8;
+  [...$("advFilter").children].forEach(o => o.setAttribute("aria-pressed", o === b)); renderList(); });
+$("search").addEventListener("input", () => { shown = 8; renderList(); });
 
-/* tabs highlight */
-const tabs = [...document.querySelectorAll(".tabs a")];
-addEventListener("scroll", () => {
-  const y = scrollY + 120; let cur = tabs[0];
-  tabs.forEach(t => { const el = document.querySelector(t.getAttribute("href")); if (el && el.offsetTop <= y) cur = t; });
-  tabs.forEach(t => t.classList.toggle("on", t === cur));
-}, {passive:true});
+/* sidebar highlight */
+const links = [...document.querySelectorAll(".side .nav:not(.foot) a")];
+addEventListener("scroll", () => { const y = scrollY + 140; let cur = links[0];
+  links.forEach(a => { const el = document.querySelector(a.getAttribute("href")); if (el && el.getBoundingClientRect().top + scrollY <= y) cur = a; });
+  links.forEach(a => a.classList.toggle("on", a === cur)); }, {passive:true});
 
-$("footer").innerHTML = `<p>Data from the <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA Known Exploited Vulnerabilities catalog</a>, refreshed every few hours. Patch-by dates are CISA's deadlines for U.S. federal agencies. The forecast is a rough gauge, not a risk assessment of your environment.</p><p><a href="/api/forecast">Forecast API</a></p>`;
-
-renderStack(); size();
-if (!reduce) { endAgo = 29; scrub.value = 0; setTimeout(play, 400); }
+renderStack(); drawTrend(); drawWeek(); size();
+addEventListener("resize", () => { drawTrend(); drawWeek(); });
+if (!reduce) { endAgo = 29; scrub.value = 0; setTimeout(play, 500); }
 }
 })();
 </script>
